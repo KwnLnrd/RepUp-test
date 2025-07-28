@@ -50,6 +50,22 @@ class Restaurant(db.Model):
     servers = db.relationship('Server', back_populates='restaurant', cascade="all, delete-orphan")
     dishes = db.relationship('Dish', back_populates='restaurant', cascade="all, delete-orphan")
 
+# --- MODÈLES MANQUANTS AJOUTÉS ICI ---
+class Server(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    avatar_url = db.Column(db.String(255), nullable=True)
+    restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False, index=True)
+    restaurant = db.relationship('Restaurant', back_populates='servers')
+
+class Dish(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False, index=True)
+    restaurant = db.relationship('Restaurant', back_populates='dishes')
+# --- FIN DES MODÈLES AJOUTÉS ---
+
 with app.app_context():
     db.create_all()
 
@@ -91,8 +107,19 @@ def login():
 # --- API PUBLIQUE (Page de collecte d'avis) ---
 @app.route('/api/public/restaurant/<string:slug>', methods=['GET'])
 def get_restaurant_public_data(slug):
-    # ... (code from previous version, it's correct)
-    pass
+    restaurant = Restaurant.query.filter_by(slug=slug).first_or_404()
+    servers = Server.query.filter_by(restaurant_id=restaurant.id).all()
+    return jsonify({
+        "name": restaurant.name,
+        "logoUrl": restaurant.logo_url,
+        "primaryColor": restaurant.primary_color,
+        "links": {
+            "google": restaurant.google_link,
+            "tripadvisor": restaurant.tripadvisor_link
+        },
+        "servers": [{"id": s.id, "name": s.name, "avatar": s.avatar_url} for s in servers],
+        "languages": restaurant.enabled_languages
+    })
 
 # --- API PRIVÉE (Panel d'administration) ---
 
