@@ -1,18 +1,24 @@
 import os
 import traceback
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, Text
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required, JWTManager, get_jwt
 
 # --- CONFIGURATION INITIALE ---
 load_dotenv()
 app = Flask(__name__)
+
+# --- CONFIGURATION DU DOSSIER DE TÉLÉVERSEMENT ---
+UPLOAD_FOLDER = 'uploads'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 # --- LOGGING CONFIGURATION ---
 app.logger.setLevel(logging.INFO)
@@ -75,10 +81,10 @@ class Restaurant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     slug = db.Column(db.String(100), unique=True, nullable=False, index=True)
-    logo_url = db.Column(db.String(255), nullable=True)
+    logo_url = db.Column(db.Text, nullable=True)
     primary_color = db.Column(db.String(7), default='#BF5B3F')
-    google_link = db.Column(db.String(512), nullable=True)
-    tripadvisor_link = db.Column(db.String(512), nullable=True)
+    google_link = db.Column(db.Text, nullable=True)
+    tripadvisor_link = db.Column(db.Text, nullable=True)
     enabled_languages = db.Column(db.JSON, default=['fr', 'en'])
     user = db.relationship('User', back_populates='restaurant', cascade="all, delete-orphan")
     servers = db.relationship('Server', back_populates='restaurant', cascade="all, delete-orphan")
@@ -87,7 +93,7 @@ class Restaurant(db.Model):
 class Server(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
-    avatar_url = db.Column(db.String(255), nullable=True)
+    avatar_url = db.Column(db.Text, nullable=True)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False, index=True)
     restaurant = db.relationship('Restaurant', back_populates='servers')
 
@@ -104,6 +110,12 @@ with app.app_context():
 def get_restaurant_id_from_token():
     return get_jwt()["restaurant_id"]
 
+# --- ROUTES POUR SERVIR LES FICHIERS TÉLÉVERSÉS ---
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+# --- ROUTES API ---
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -126,14 +138,32 @@ def login():
     email, password = data.get('email'), data.get('password')
     user = User.query.filter_by(email=email).first()
     if user and check_password_hash(user.password_hash, password):
-        # --- FINAL FIX: Convert user.id to a string ---
-        # The JWT identity must be a string, not an integer.
         access_token = create_access_token(
             identity=str(user.id), 
             additional_claims={"restaurant_id": user.restaurant_id, "restaurant_slug": user.restaurant.slug}
         )
         return jsonify(access_token=access_token)
     return jsonify({"error": "Identifiants invalides"}), 401
+
+@app.route('/api/logo-upload', methods=['POST'])
+@jwt_required()
+def upload_logo():
+    restaurant_id = get_restaurant_id_from_token()
+    restaurant = db.session.get(Restaurant, restaurant_id)
+    if not restaurant: return jsonify({"error": "Restaurant non trouvé"}), 404
+    if 'logo' not in request.files: return jsonify({"error": "Aucun fichier n'a été envoyé"}), 400
+    file = request.files['logo']
+    if file.filename == '': return jsonify({"error": "Aucun fichier sélectionné"}), 400
+    if file:
+        ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        filename = secure_filename(f"logo_restaurant_{restaurant_id}.{ext}")
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        logo_url = f"/uploads/{filename}"
+        restaurant.logo_url = logo_url
+        db.session.commit()
+        return jsonify({"message": "Logo téléversé avec succès", "logoUrl": logo_url}), 200
+    return jsonify({"error": "Une erreur est survenue"}), 500
 
 @app.route('/api/public/restaurant/<string:slug>', methods=['GET'])
 def get_restaurant_public_data(slug):
@@ -160,7 +190,6 @@ def manage_restaurant_settings():
         })
     if request.method == 'PUT':
         data = request.get_json()
-        restaurant.logo_url = data.get('logoUrl', restaurant.logo_url)
         restaurant.primary_color = data.get('primaryColor', restaurant.primary_color)
         restaurant.google_link = data.get('googleLink', restaurant.google_link)
         restaurant.tripadvisor_link = data.get('tripadvisorLink', restaurant.tripadvisor_link)

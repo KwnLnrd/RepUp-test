@@ -128,15 +128,12 @@
 
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
-            if (!token) {
-                logout();
-                throw new Error('Token d\'authentification manquant. Reconnexion nécessaire.');
-            }
+            if (!token) { logout(); throw new Error('Token d\'authentification manquant.'); }
             const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers };
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
             if (response.status === 401 || response.status === 422) {
                 logout();
-                const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide (token manquant?).';
+                const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide.';
                 throw new Error(`Session expirée. ${errorText} Veuillez vous reconnecter.`);
             }
             if (!response.ok) {
@@ -145,6 +142,24 @@
                 throw new Error(errorMsg);
             }
             if (response.headers.get('Content-Length') === '0' || response.status === 204) { return null; }
+            return response.json();
+        }
+        
+        async function fetchWithAuthFormData(url, formData, options = {}) {
+            const token = localStorage.getItem('jwt_token');
+            if (!token) { logout(); throw new Error('Token d\'authentification manquant.'); }
+            const headers = { 'Authorization': `Bearer ${token}`, ...options.headers };
+            const response = await fetch(`${API_BASE_URL}${url}`, { method: 'POST', body: formData, headers });
+            if (response.status === 401 || response.status === 422) {
+                logout();
+                const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide.';
+                throw new Error(`Session expirée. ${errorText} Veuillez vous reconnecter.`);
+            }
+            if (!response.ok) {
+                let errorMsg = `Erreur du serveur (code: ${response.status})`;
+                try { const errorData = await response.json(); errorMsg = errorData.error || errorData.message || errorMsg; } catch (e) {}
+                throw new Error(errorMsg);
+            }
             return response.json();
         }
 
@@ -170,9 +185,7 @@
                 if (data && data.access_token) {
                     localStorage.setItem('jwt_token', data.access_token);
                     await loadAppData();
-                } else {
-                    throw new Error('Réponse de connexion invalide du serveur.');
-                }
+                } else { throw new Error('Réponse de connexion invalide.'); }
             } catch (error) {
                 errorP.textContent = error.message;
             } finally {
@@ -225,10 +238,13 @@
             const settings = await fetchWithAuth('/api/restaurant');
             const availableLangs = { 'fr': 'Français', 'en': 'English', 'es': 'Español', 'it': 'Italiano' };
             const enabledLanguages = Array.isArray(settings.enabledLanguages) ? settings.enabledLanguages : [];
-            section.innerHTML = `<h1 class="text-4xl font-bold font-serif mb-8">Gestion de la Page de Collecte d'Avis</h1><form id="page-settings-form"><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2 space-y-8"><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Personnalisation Visuelle</h2><div class="space-y-6"><div class="flex items-center gap-6"><img id="logo-preview" src="${settings.logoUrl || 'https://placehold.co/100x100/DEE2E6/6C757D?text=Logo'}" alt="Aperçu du logo" class="w-24 h-24 rounded-lg object-contain bg-gray-100 p-1"><div class="flex-1"><label for="logo-url" class="block text-sm font-medium text-gray-700">URL du logo</label><input type="url" id="logo-url" value="${settings.logoUrl || ''}" class="form-input"><p class="text-xs text-gray-500 mt-1">L'aperçu se met à jour lorsque vous quittez le champ.</p></div></div><div><label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label><input type="color" id="primary-color" value="${settings.primaryColor || '#BF5B3F'}" class="mt-1 h-10 w-20 rounded-md border-gray-300 p-1"></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Liens de Notation</h2><div class="space-y-4"><div><label for="google-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis Google</label><input type="url" id="google-link" value="${settings.googleLink || ''}" class="form-input" placeholder="https://search.google.com/local/writereview?placeid=..."></div><div><label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis TripAdvisor</label><input type="url" id="tripadvisor-link" value="${settings.tripadvisorLink || ''}" class="form-input" placeholder="https://www.tripadvisor.com/UserReview-g...-d..."></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Langues</h2><p class="text-sm text-gray-600 mb-4">Sélectionnez les langues à proposer sur votre page de collecte d'avis.</p><div id="languages-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">${Object.entries(availableLangs).map(([code, name]) => `<label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${enabledLanguages.includes(code) ? 'checked' : ''}><span class="text-gray-700">${name}</span></label>`).join('')}</div></div></div><div class="lg:col-span-1"><div class="card sticky top-8" id="qr-code-card"></div></div></div><div class="mt-8 text-right bg-white p-4 rounded-lg shadow-md sticky bottom-0"><button type="submit" class="bg-brand-color text-white px-8 py-3 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-lg">Enregistrer les modifications</button></div></form>`;
+            const logoSrc = settings.logoUrl ? `${API_BASE_URL}${settings.logoUrl}` : 'https://placehold.co/100x100/DEE2E6/6C757D?text=Logo';
+            
+            section.innerHTML = `<h1 class="text-4xl font-bold font-serif mb-8">Gestion de la Page de Collecte d'Avis</h1><form id="page-settings-form"><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2 space-y-8"><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Personnalisation Visuelle</h2><div class="space-y-6"><div class="flex items-center gap-6"><img id="logo-preview" src="${logoSrc}" alt="Aperçu du logo" class="w-24 h-24 rounded-lg object-contain bg-gray-100 p-1"><div class="flex-1"><label for="logo-file" class="block text-sm font-medium text-gray-700">Changer le logo</label><input type="file" id="logo-file" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-color-light file:text-brand-color hover:file:bg-brand-color/20" accept="image/png, image/jpeg, image/gif"><p class="text-xs text-gray-500 mt-1">L'aperçu se met à jour automatiquement.</p></div></div><div><label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label><input type="color" id="primary-color" value="${settings.primaryColor || '#BF5B3F'}" class="mt-1 h-10 w-20 rounded-md border-gray-300 p-1"></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Liens de Notation</h2><div class="space-y-4"><div><label for="google-link" class="block text-sm font-medium text-gray-700">Lien Google</label><input type="url" id="google-link" value="${settings.googleLink || ''}" class="form-input" placeholder="https://search.google.com/local/writereview?placeid=..."></div><div><label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien TripAdvisor</label><input type="url" id="tripadvisor-link" value="${settings.tripadvisorLink || ''}" class="form-input" placeholder="https://www.tripadvisor.com/UserReview-g...-d..."></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Langues</h2><p class="text-sm text-gray-600 mb-4">Sélectionnez les langues à proposer.</p><div id="languages-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">${Object.entries(availableLangs).map(([code, name]) => `<label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${enabledLanguages.includes(code) ? 'checked' : ''}><span class="text-gray-700">${name}</span></label>`).join('')}</div></div></div><div class="lg:col-span-1"><div class="card sticky top-8" id="qr-code-card"></div></div></div><div class="mt-8 text-right bg-white p-4 rounded-lg shadow-md sticky bottom-0"><button type="submit" class="bg-brand-color text-white px-8 py-3 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-lg">Enregistrer les modifications</button></div></form>`;
+            
             const qrCard = document.getElementById('qr-code-card');
             const slug = settings.slug;
-            if (!slug) { qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center"><p class="font-bold">Erreur de configuration</p><p class="text-sm mt-1">Le "slug" du restaurant est manquant. Le QR Code ne peut pas être généré.</p></div>`; } 
+            if (!slug) { qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center"><p class="font-bold">Erreur</p><p class="text-sm mt-1">Le "slug" du restaurant est manquant.</p></div>`; } 
             else {
                 qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><p class="text-sm text-gray-600 mb-4">Vos clients scannent ce code pour laisser un avis.</p><div class="flex justify-center items-center bg-gray-50 p-4 rounded-lg"><div id="qrcode-container" class="p-2 bg-white rounded-md shadow-inner"></div></div><a id="download-qr-btn" href="#" class="mt-4 block w-full text-center bg-gray-800 text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-900">Télécharger</a><div class="mt-4"><label class="text-sm font-medium text-gray-700">Votre lien direct :</label><input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier"></div>`;
                 const reviewPageUrl = new URL('saas_review_collection_page.html', window.location.href);
@@ -238,7 +254,12 @@
                 document.getElementById('download-qr-btn').addEventListener('click', (e) => { e.preventDefault(); const canvas = qrcodeContainer.querySelector('canvas'); if (canvas) { const link = document.createElement('a'); link.download = `qrcode-${slug}.png`; link.href = canvas.toDataURL('image/png'); link.click(); } });
                 document.getElementById('review-page-link').addEventListener('click', () => { const input = document.getElementById('review-page-link'); input.select(); document.execCommand('copy'); alert('Lien copié !'); });
             }
-            document.getElementById('logo-url').addEventListener('blur', (e) => { const preview = document.getElementById('logo-preview'); if (e.target.value) { preview.src = e.target.value; } });
+            
+            document.getElementById('logo-file').addEventListener('change', (e) => {
+                const preview = document.getElementById('logo-preview');
+                const file = e.target.files[0];
+                if (file) { preview.src = URL.createObjectURL(file); }
+            });
             document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
         }
 
@@ -266,9 +287,28 @@
             e.preventDefault();
             const button = e.target.querySelector('button[type="submit"]');
             button.disabled = true; button.textContent = 'Enregistrement...';
-            const selectedLangs = Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(cb => cb.value);
-            const data = { logoUrl: document.getElementById('logo-url').value, primaryColor: document.getElementById('primary-color').value, googleLink: document.getElementById('google-link').value, tripadvisorLink: document.getElementById('tripadvisor-link').value, enabledLanguages: selectedLangs };
-            try { await fetchWithAuth('/api/restaurant', { method: 'PUT', body: JSON.stringify(data) }); alert('Paramètres enregistrés !'); } catch (error) { alert('Erreur: ' + error.message); } finally { button.disabled = false; button.textContent = 'Enregistrer les modifications'; }
+            const logoFileInput = document.getElementById('logo-file');
+            try {
+                if (logoFileInput.files && logoFileInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('logo', logoFileInput.files[0]);
+                    await fetchWithAuthFormData('/api/logo-upload', formData);
+                }
+                const selectedLangs = Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(cb => cb.value);
+                const data = {
+                    primaryColor: document.getElementById('primary-color').value,
+                    googleLink: document.getElementById('google-link').value,
+                    tripadvisorLink: document.getElementById('tripadvisor-link').value,
+                    enabledLanguages: selectedLangs
+                };
+                await fetchWithAuth('/api/restaurant', { method: 'PUT', body: JSON.stringify(data) });
+                alert('Paramètres enregistrés !');
+                await renderPageSettings();
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            } finally {
+                button.disabled = false; button.textContent = 'Enregistrer les modifications';
+            }
         }
 
         async function handleAddServer() { const name = prompt("Nom du nouveau serveur :"); if (name && name.trim()) { await fetchWithAuth('/api/servers', { method: 'POST', body: JSON.stringify({ name: name.trim() }) }); renderTeamManagement(); } }
