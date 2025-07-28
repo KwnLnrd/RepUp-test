@@ -128,7 +128,6 @@
 
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
-            console.log(`[fetchWithAuth] Trying to fetch ${url} with token:`, token ? token.substring(0, 20) + '...' : 'No token found');
             if (!token) {
                 logout();
                 throw new Error('Token d\'authentification manquant. Reconnexion nécessaire.');
@@ -136,7 +135,6 @@
             const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers };
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
             if (response.status === 401 || response.status === 422) {
-                console.error(`[fetchWithAuth] Auth error ${response.status} for ${url}. Logging out.`);
                 logout();
                 const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide (token manquant?).';
                 throw new Error(`Session expirée. ${errorText} Veuillez vous reconnecter.`);
@@ -151,7 +149,6 @@
         }
 
         function logout() {
-            console.log("[logout] Clearing token and hiding main app.");
             localStorage.removeItem('jwt_token');
             mainApp.classList.add('hidden');
             authOverlay.classList.remove('hidden');
@@ -171,7 +168,6 @@
             try {
                 const data = await fetchPublic('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
                 if (data && data.access_token) {
-                    console.log("[login] Login successful. Token received:", data.access_token.substring(0, 20) + '...');
                     localStorage.setItem('jwt_token', data.access_token);
                     await loadAppData();
                 } else {
@@ -232,12 +228,13 @@
             section.innerHTML = `<h1 class="text-4xl font-bold font-serif mb-8">Gestion de la Page de Collecte d'Avis</h1><form id="page-settings-form"><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2 space-y-8"><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Personnalisation Visuelle</h2><div class="space-y-6"><div class="flex items-center gap-6"><img id="logo-preview" src="${settings.logoUrl || 'https://placehold.co/100x100/DEE2E6/6C757D?text=Logo'}" alt="Aperçu du logo" class="w-24 h-24 rounded-lg object-contain bg-gray-100 p-1"><div class="flex-1"><label for="logo-url" class="block text-sm font-medium text-gray-700">URL du logo</label><input type="url" id="logo-url" value="${settings.logoUrl || ''}" class="form-input"><p class="text-xs text-gray-500 mt-1">L'aperçu se met à jour lorsque vous quittez le champ.</p></div></div><div><label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label><input type="color" id="primary-color" value="${settings.primaryColor || '#BF5B3F'}" class="mt-1 h-10 w-20 rounded-md border-gray-300 p-1"></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Liens de Notation</h2><div class="space-y-4"><div><label for="google-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis Google</label><input type="url" id="google-link" value="${settings.googleLink || ''}" class="form-input" placeholder="https://search.google.com/local/writereview?placeid=..."></div><div><label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis TripAdvisor</label><input type="url" id="tripadvisor-link" value="${settings.tripadvisorLink || ''}" class="form-input" placeholder="https://www.tripadvisor.com/UserReview-g...-d..."></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Langues</h2><p class="text-sm text-gray-600 mb-4">Sélectionnez les langues à proposer sur votre page de collecte d'avis.</p><div id="languages-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">${Object.entries(availableLangs).map(([code, name]) => `<label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${enabledLanguages.includes(code) ? 'checked' : ''}><span class="text-gray-700">${name}</span></label>`).join('')}</div></div></div><div class="lg:col-span-1"><div class="card sticky top-8" id="qr-code-card"></div></div></div><div class="mt-8 text-right bg-white p-4 rounded-lg shadow-md sticky bottom-0"><button type="submit" class="bg-brand-color text-white px-8 py-3 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-lg">Enregistrer les modifications</button></div></form>`;
             const qrCard = document.getElementById('qr-code-card');
             const slug = settings.slug;
-            if (!slug) { qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center"><p class="font-bold">Erreur de configuration</p><p class="text-sm mt-1">Le "slug" du restaurant est manquant. Le QR Code ne peut pas être généré. Veuillez contacter le support.</p></div>`; } 
+            if (!slug) { qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center"><p class="font-bold">Erreur de configuration</p><p class="text-sm mt-1">Le "slug" du restaurant est manquant. Le QR Code ne peut pas être généré.</p></div>`; } 
             else {
                 qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><p class="text-sm text-gray-600 mb-4">Vos clients scannent ce code pour laisser un avis.</p><div class="flex justify-center items-center bg-gray-50 p-4 rounded-lg"><div id="qrcode-container" class="p-2 bg-white rounded-md shadow-inner"></div></div><a id="download-qr-btn" href="#" class="mt-4 block w-full text-center bg-gray-800 text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-900">Télécharger</a><div class="mt-4"><label class="text-sm font-medium text-gray-700">Votre lien direct :</label><input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier"></div>`;
-                const reviewPageUrl = `${window.location.origin.replace('saas_admin_panel.html', '')}saas_review_collection_page.html?slug=${slug}`;
-                document.getElementById('review-page-link').value = reviewPageUrl;
-                new QRCode(document.getElementById('qrcode-container'), { text: reviewPageUrl, width: 200, height: 200 });
+                const reviewPageUrl = new URL('saas_review_collection_page.html', window.location.href);
+                reviewPageUrl.searchParams.set('slug', slug);
+                document.getElementById('review-page-link').value = reviewPageUrl.href;
+                new QRCode(document.getElementById('qrcode-container'), { text: reviewPageUrl.href, width: 200, height: 200 });
                 document.getElementById('download-qr-btn').addEventListener('click', (e) => { e.preventDefault(); const canvas = qrcodeContainer.querySelector('canvas'); if (canvas) { const link = document.createElement('a'); link.download = `qrcode-${slug}.png`; link.href = canvas.toDataURL('image/png'); link.click(); } });
                 document.getElementById('review-page-link').addEventListener('click', () => { const input = document.getElementById('review-page-link'); input.select(); document.execCommand('copy'); alert('Lien copié !'); });
             }
@@ -283,18 +280,12 @@
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
             try {
-                console.log("[loadAppData] Starting sequential data load...");
                 await renderDashboard();
-                console.log("[loadAppData] Dashboard rendered.");
                 await renderPageSettings();
-                console.log("[loadAppData] Page settings rendered.");
                 await renderTeamManagement();
-                console.log("[loadAppData] Team management rendered.");
                 await renderMenuManagement();
-                console.log("[loadAppData] Menu management rendered.");
                 const hash = window.location.hash || '#dashboard';
                 switchTab(hash);
-                console.log("[loadAppData] All data loaded and tab switched.");
             } catch (error) {
                 console.error("Failed to load app data:", error);
                 contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
@@ -304,10 +295,8 @@
         function initializeOnLoad() {
             const token = localStorage.getItem('jwt_token');
             if (token && token !== 'undefined' && token !== 'null') {
-                console.log("[initializeOnLoad] Token found. Loading app data.");
                 loadAppData();
             } else {
-                console.log("[initializeOnLoad] No valid token found. Showing auth overlay.");
                 authOverlay.classList.remove('hidden');
                 mainApp.classList.add('hidden');
             }
