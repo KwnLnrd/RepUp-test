@@ -13,17 +13,14 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 load_dotenv()
 app = Flask(__name__)
 
-# --- CORS CONFIGURATION (REVISED) ---
-# This is a more secure and correct CORS configuration for applications
-# that use credentials (like JWT tokens in headers).
-# The browser requires a specific origin to be listed, not a wildcard ('*'),
-# when `supports_credentials` is True.
+# --- CORS CONFIGURATION (REVISED AND CORRECTED) ---
+# The browser requires explicit permission to send certain headers (like Authorization)
+# across different origins. We need to specify `allow_headers`.
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://repup-avis.netlify.app")
-# Add any other origins you might use for development, e.g., from a local server.
-# The URL for VS Code's "Live Server" is often http://127.0.0.1:5500
 CORS(app, 
-     origins=[FRONTEND_URL, "http://127.0.0.1:5500"], 
-     supports_credentials=True
+     origins=[FRONTEND_URL, "http://127.0.0.1:5500", "http://127.0.0.1:5501"], # Added common Live Server port
+     supports_credentials=True,
+     allow_headers=["Authorization", "Content-Type"] # This is the crucial line
 )
 
 # --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT ---
@@ -79,9 +76,7 @@ class Dish(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- HELPER (CORRIGÉ) ---
-# Le décorateur @jwt_required a été retiré de cette fonction.
-# La validation du token est déjà faite par le décorateur sur le point d'API appelant.
+# --- HELPER ---
 def get_restaurant_id_from_token():
     """Helper to get restaurant_id from JWT claims."""
     return get_jwt()["restaurant_id"]
@@ -111,7 +106,6 @@ def login():
     email, password = data.get('email'), data.get('password')
     user = User.query.filter_by(email=email).first()
     if user and check_password_hash(user.password_hash, password):
-        # On ajoute le slug du restaurant dans le token pour pouvoir générer le QR code côté client
         access_token = create_access_token(
             identity=user.id, 
             additional_claims={
@@ -152,7 +146,7 @@ def manage_restaurant_settings():
     if request.method == 'GET':
         return jsonify({
             "name": restaurant.name,
-            "slug": restaurant.slug, # On retourne le slug ici
+            "slug": restaurant.slug,
             "logoUrl": restaurant.logo_url,
             "primaryColor": restaurant.primary_color,
             "googleLink": restaurant.google_link,
@@ -238,6 +232,11 @@ def handle_dish(dish_id):
         db.session.delete(dish)
         db.session.commit()
         return jsonify({"message": "Plat supprimé"})
+
+# --- ROOT ROUTE (Added for health checks and to avoid 404) ---
+@app.route('/')
+def index():
+    return jsonify({"status": "API is running"}), 200
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5001))
