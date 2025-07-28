@@ -166,34 +166,50 @@
             return response.json();
         }
 
+        // --- FETCH WITH AUTH (CORRECTED AND ROBUST VERSION) ---
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
-            const headers = { 'Content-Type': 'application/json', ...options.headers };
-            
-            if (token && typeof token === 'string' && token !== 'undefined' && token !== 'null') {
-                headers['Authorization'] = `Bearer ${token}`;
-            } else {
-                logout();
-                throw new Error('Token non trouvé. Reconnexion nécessaire.');
+
+            // Simplified and more robust token check.
+            // If the token is null, undefined, or an empty string, this will fail.
+            if (!token) {
+                logout(); // Log out immediately if no token is found
+                throw new Error('Token d\'authentification manquant. Reconnexion nécessaire.');
             }
+
+            // Construct headers object, ensuring Authorization is always included.
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+                ...options.headers
+            };
             
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
 
+            // Handle auth-specific errors first
             if (response.status === 401 || response.status === 422) {
                 logout();
-                throw new Error('Session expirée ou invalide. Veuillez vous reconnecter.');
+                const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide (token manquant?).';
+                throw new Error(`Session expirée. ${errorText} Veuillez vous reconnecter.`);
             }
+            
+            // Handle other server errors
             if (!response.ok) {
                 let errorMsg = `Erreur du serveur (code: ${response.status})`;
                 try {
                     const errorData = await response.json();
                     errorMsg = errorData.error || errorData.message || errorMsg;
                 } catch (e) {
-                    console.error("Could not parse error response as JSON.", e);
+                    // Ignore if the error response is not JSON
                 }
                 throw new Error(errorMsg);
             }
-            if (response.headers.get('Content-Length') === '0' || response.status === 204) return null;
+
+            // Handle successful but empty responses
+            if (response.headers.get('Content-Length') === '0' || response.status === 204) {
+                return null;
+            }
+            
             return response.json();
         }
         
@@ -201,6 +217,13 @@
             localStorage.removeItem('jwt_token');
             mainApp.classList.add('hidden');
             authOverlay.classList.remove('hidden');
+            // Clear the content area to prevent showing old data on next login
+            contentArea.innerHTML = `
+                <section id="dashboard" class="content-section fade-in"></section>
+                <section id="page-settings" class="content-section"></section>
+                <section id="team-management" class="content-section"></section>
+                <section id="menu-management" class="content-section"></section>
+            `;
         }
 
         logoutBtn.addEventListener('click', logout);
@@ -284,7 +307,7 @@
         // --- RENDER FUNCTIONS ---
         async function renderDashboard() {
             const section = document.getElementById('dashboard');
-            if (!section) return; // Sécurité pour éviter l'erreur
+            if (!section) return;
             section.innerHTML = `
                 <h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -397,7 +420,7 @@
                             <input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier">
                         </div>`;
                     
-                    const reviewPageUrl = `${window.location.origin}/r/${slug}`;
+                    const reviewPageUrl = `${window.location.origin.replace('saas_admin_panel.html', '')}saas_review_collection_page.html?slug=${slug}`;
                     document.getElementById('review-page-link').value = reviewPageUrl;
                     
                     const qrcodeContainer = document.getElementById('qrcode-container');
@@ -440,9 +463,6 @@
 
             } catch (error) {
                 let userFriendlyMessage = error.message;
-                if (error.message.includes('422')) {
-                    userFriendlyMessage = `Le serveur a rejeté la requête car les données semblaient invalides (Erreur 422).<br>Cela peut arriver juste après une inscription.<br><b>Veuillez essayer de vous déconnecter et de vous reconnecter.</b>`;
-                }
                 section.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Erreur lors du chargement des paramètres :</p><p class="text-gray-600 mt-2">${userFriendlyMessage}</p></div>`;
             }
         }
@@ -572,11 +592,9 @@
         async function loadAppData() {
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
-
-            // On ne vide plus le contentArea ici.
-            // Chaque fonction render mettra son propre message de chargement.
             
             try {
+                // Fetch all data in parallel after login
                 await Promise.all([
                     renderDashboard(),
                     renderPageSettings(),
@@ -584,25 +602,20 @@
                     renderMenuManagement()
                 ]);
                 
+                // Switch to the correct tab once all data is loaded
                 const hash = window.location.hash || '#dashboard';
                 switchTab(hash);
 
             } catch (error) {
                 console.error("Failed to load app data:", error);
-                // On s'assure que la structure HTML de base est présente avant d'afficher l'erreur
-                contentArea.innerHTML = `
-                    <section id="dashboard" class="content-section fade-in"></section>
-                    <section id="page-settings" class="content-section"></section>
-                    <section id="team-management" class="content-section"></section>
-                    <section id="menu-management" class="content-section"></section>
-                `;
+                // Display a global error message in the content area
                 contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
             }
         }
         
         function initializeOnLoad() {
             const token = localStorage.getItem('jwt_token');
-            if (token && token !== 'undefined' && token !== 'null') {
+            if (token) {
                 loadAppData();
             } else {
                 authOverlay.classList.remove('hidden');
