@@ -1,5 +1,6 @@
 import os
 import traceback
+import logging
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -12,6 +13,13 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 # --- CONFIGURATION INITIALE ---
 load_dotenv()
 app = Flask(__name__)
+
+# --- LOGGING CONFIGURATION (ADDED FOR DEBUGGING) ---
+# This will help us see the incoming request headers in your Render logs.
+app.logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+app.logger.addHandler(handler)
 
 # --- CORS CONFIGURATION (REVISED AND CORRECTED) ---
 # The browser requires explicit permission to send certain headers (like Authorization)
@@ -35,6 +43,14 @@ app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "une-cle-vraiment-sec
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+
+# --- LOGGING HOOK (ADDED FOR DEBUGGING) ---
+@app.before_request
+def log_request_info():
+    """Log the headers of every incoming request to help debug the auth issue."""
+    app.logger.info(f"--- Request to {request.path} ---")
+    app.logger.info(f"Headers: {request.headers}")
+
 
 # --- MODÈLES DE LA BASE DE DONNÉES (Architecture Multi-Tenant) ---
 
