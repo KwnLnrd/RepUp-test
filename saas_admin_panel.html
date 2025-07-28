@@ -161,25 +161,49 @@
         const contentArea = document.getElementById('content-area');
 
         // --- AUTHENTICATION (CORRIGÉE) ---
+
+        // Fonction fetch pour les routes publiques (login, register) qui n'envoient pas de token
+        async function fetchPublic(url, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+            if (!response.ok) {
+                let errorMsg = `Erreur du serveur (code: ${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    errorMsg = errorData.error || errorData.message || errorMsg;
+                } catch (e) {
+                    console.error("Could not parse error response as JSON.", e);
+                }
+                throw new Error(errorMsg);
+            }
+            return response.json();
+        }
+
+        // Fonction fetch pour les routes protégées qui envoie le token
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
             const headers = { 'Content-Type': 'application/json', ...options.headers };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
+            
+            if (token && typeof token === 'string' && token !== 'undefined' && token !== 'null') {
+                headers['Authorization'] = `Bearer ${token}`;
+            } else {
+                // Si pas de token, on déconnecte et on arrête tout.
+                logout();
+                throw new Error('Token non trouvé. Reconnexion nécessaire.');
+            }
             
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
 
-            if (response.status === 401) {
+            if (response.status === 401 || response.status === 422) {
                 logout();
-                throw new Error('Session expirée. Veuillez vous reconnecter.');
+                throw new Error('Session expirée ou invalide. Veuillez vous reconnecter.');
             }
             if (!response.ok) {
                 let errorMsg = `Erreur du serveur (code: ${response.status})`;
                 try {
                     const errorData = await response.json();
-                    // Use a more specific error message from the API if available
                     errorMsg = errorData.error || errorData.message || errorMsg;
                 } catch (e) {
-                    // The response body was not JSON. The default message is fine.
                     console.error("Could not parse error response as JSON.", e);
                 }
                 throw new Error(errorMsg);
@@ -207,12 +231,17 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             try {
-                const data = await fetchWithAuth('/api/login', {
+                // On utilise fetchPublic ici car on n'a pas encore de token
+                const data = await fetchPublic('/api/login', {
                     method: 'POST',
                     body: JSON.stringify({ email, password })
                 });
-                localStorage.setItem('jwt_token', data.access_token);
-                initializeApp();
+                if (data && data.access_token) {
+                    localStorage.setItem('jwt_token', data.access_token);
+                    initializeApp();
+                } else {
+                    throw new Error('Réponse de connexion invalide du serveur.');
+                }
             } catch (error) {
                 errorP.textContent = error.message;
             } finally {
@@ -233,7 +262,8 @@
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
             try {
-                const data = await fetchWithAuth('/api/register', {
+                // On utilise fetchPublic ici aussi
+                const data = await fetchPublic('/api/register', {
                     method: 'POST',
                     body: JSON.stringify({ restaurant_name, email, password })
                 });
@@ -288,7 +318,6 @@
             new Chart(ctx, { type: 'line', data: { labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'], datasets: [{ label: 'Avis reçus', data: [65, 59, 80, 81, 56, 55, 128], borderColor: 'var(--brand-color)', backgroundColor: 'var(--brand-color-light)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
         }
         
-        // --- RENDER PAGE SETTINGS (CORRIGÉE ET AMÉLIORÉE) ---
         async function renderPageSettings() {
             const section = document.getElementById('page-settings');
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
@@ -360,9 +389,6 @@
                     </form>
                 `;
                 
-                // --- LOGIQUE POUR LES ÉLÉMENTS NOUVELLEMENT RENDUS ---
-
-                // Génération du QR Code
                 const qrCard = document.getElementById('qr-code-card');
                 const slug = settings.slug;
 
@@ -418,7 +444,6 @@
                     });
                 }
 
-                // Aperçu du logo
                 document.getElementById('logo-url').addEventListener('blur', (e) => {
                     const preview = document.getElementById('logo-preview');
                     if (e.target.value) {
@@ -426,7 +451,6 @@
                     }
                 });
 
-                // Attacher le gestionnaire de soumission du formulaire
                 document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
 
             } catch (error) {
@@ -558,23 +582,26 @@
 
         // --- APP INITIALIZATION ---
         async function initializeApp() {
-            if (!localStorage.getItem('jwt_token')) {
+            // On vérifie que le token est bien présent et valide avant de continuer
+            const token = localStorage.getItem('jwt_token');
+            if (!token || token === 'undefined' || token === 'null') {
                 authOverlay.classList.remove('hidden');
                 mainApp.classList.add('hidden');
                 return;
             }
+
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
             
-            // Render all sections once on load
+            // On charge les données pour l'onglet actif en premier
+            const hash = window.location.hash || '#dashboard';
+            switchTab(hash);
+
+            // On charge les autres onglets en arrière-plan
             renderDashboard();
             renderPageSettings();
             renderTeamManagement();
             renderMenuManagement();
-
-            // Navigate to the correct tab based on hash
-            const hash = window.location.hash || '#dashboard';
-            switchTab(hash);
         }
         
         initializeApp();
