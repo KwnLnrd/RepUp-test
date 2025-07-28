@@ -170,14 +170,11 @@
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
 
-            // Simplified and more robust token check.
-            // If the token is null, undefined, or an empty string, this will fail.
             if (!token) {
-                logout(); // Log out immediately if no token is found
+                logout(); 
                 throw new Error('Token d\'authentification manquant. Reconnexion nécessaire.');
             }
 
-            // Construct headers object, ensuring Authorization is always included.
             const headers = {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
@@ -186,14 +183,12 @@
             
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
 
-            // Handle auth-specific errors first
             if (response.status === 401 || response.status === 422) {
                 logout();
                 const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide (token manquant?).';
                 throw new Error(`Session expirée. ${errorText} Veuillez vous reconnecter.`);
             }
             
-            // Handle other server errors
             if (!response.ok) {
                 let errorMsg = `Erreur du serveur (code: ${response.status})`;
                 try {
@@ -205,7 +200,6 @@
                 throw new Error(errorMsg);
             }
 
-            // Handle successful but empty responses
             if (response.headers.get('Content-Length') === '0' || response.status === 204) {
                 return null;
             }
@@ -217,7 +211,6 @@
             localStorage.removeItem('jwt_token');
             mainApp.classList.add('hidden');
             authOverlay.classList.remove('hidden');
-            // Clear the content area to prevent showing old data on next login
             contentArea.innerHTML = `
                 <section id="dashboard" class="content-section fade-in"></section>
                 <section id="page-settings" class="content-section"></section>
@@ -628,4 +621,4 @@
     });
     </script>
 </body>
-</html>
+</ht

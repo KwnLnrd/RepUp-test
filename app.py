@@ -14,21 +14,18 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 load_dotenv()
 app = Flask(__name__)
 
-# --- LOGGING CONFIGURATION (ADDED FOR DEBUGGING) ---
-# This will help us see the incoming request headers in your Render logs.
+# --- LOGGING CONFIGURATION ---
 app.logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 app.logger.addHandler(handler)
 
-# --- CORS CONFIGURATION (REVISED AND CORRECTED) ---
-# The browser requires explicit permission to send certain headers (like Authorization)
-# across different origins. We need to specify `allow_headers`.
+# --- CORS CONFIGURATION ---
 FRONTEND_URL = os.getenv("FRONTEND_URL", "https://repup-avis.netlify.app")
 CORS(app, 
-     origins=[FRONTEND_URL, "http://127.0.0.1:5500", "http://127.0.0.1:5501"], # Added common Live Server port
+     origins=[FRONTEND_URL, "http://127.0.0.1:5500", "http://127.0.0.1:5501"],
      supports_credentials=True,
-     allow_headers=["Authorization", "Content-Type"] # This is the crucial line
+     allow_headers=["Authorization", "Content-Type"]
 )
 
 # --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT ---
@@ -41,10 +38,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "une-cle-vraiment-secrete-et-longue-pour-la-prod")
 
+# --- EXPLICITLY DISABLE JWT CSRF ---
+# The logs show a CSRF token in the JWT, which is unexpected.
+# This explicitly disables all CSRF features of Flask-JWT-Extended to prevent potential conflicts.
+app.config["JWT_CSRF_PROTECTION"] = False
+
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-# --- LOGGING HOOK (ADDED FOR DEBUGGING) ---
+# --- LOGGING HOOK ---
 @app.before_request
 def log_request_info():
     """Log the headers of every incoming request to help debug the auth issue."""
