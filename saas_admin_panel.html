@@ -284,7 +284,7 @@
         // --- RENDER FUNCTIONS ---
         async function renderDashboard() {
             const section = document.getElementById('dashboard');
-            if (!section) return;
+            if (!section) return; // Sécurité pour éviter l'erreur
             section.innerHTML = `
                 <h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -573,13 +573,8 @@
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
 
-            // Réinitialiser le contenu de la zone principale pour afficher les placeholders de chargement
-            contentArea.innerHTML = `
-                <section id="dashboard" class="content-section fade-in"></section>
-                <section id="page-settings" class="content-section"></section>
-                <section id="team-management" class="content-section"></section>
-                <section id="menu-management" class="content-section"></section>
-            `;
+            // On ne vide plus le contentArea ici.
+            // Chaque fonction render mettra son propre message de chargement.
             
             try {
                 await Promise.all([
@@ -594,6 +589,13 @@
 
             } catch (error) {
                 console.error("Failed to load app data:", error);
+                // On s'assure que la structure HTML de base est présente avant d'afficher l'erreur
+                contentArea.innerHTML = `
+                    <section id="dashboard" class="content-section fade-in"></section>
+                    <section id="page-settings" class="content-section"></section>
+                    <section id="team-management" class="content-section"></section>
+                    <section id="menu-management" class="content-section"></section>
+                `;
                 contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
             }
         }
