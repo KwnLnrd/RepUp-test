@@ -37,26 +37,37 @@ if database_url.startswith("postgres://"):
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "une-cle-vraiment-secrete-et-longue-pour-la-prod")
-
-# --- FINAL FIX: EXPLICITLY SET TOKEN LOCATION ---
-# This forces Flask-JWT-Extended to look for the JWT in the Authorization header,
-# which is where we know it is. This resolves the conflict.
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
-app.config["JWT_CSRF_PROTECTION"] = False # Explicitly disable CSRF for safety
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer" # Explicitly set the expected header type
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
+# --- JWT ERROR HANDLERS (ADDED FOR BETTER DEBUGGING) ---
+@jwt.invalid_token_loader
+def invalid_token_callback(error):
+    app.logger.error(f"Invalid token error: {error}")
+    return jsonify({"message": "Le token est invalide.", "error": "invalid_token"}), 422
+
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    app.logger.warning("Expired token received.")
+    return jsonify({"message": "Le token a expiré.", "error": "token_expired"}), 401
+
+@jwt.unauthorized_loader
+def missing_token_callback(reason):
+    app.logger.warning(f"Missing token: {reason}")
+    return jsonify({"message": "Token d'authentification manquant.", "error": "authorization_required"}), 401
+
 # --- LOGGING HOOK ---
 @app.before_request
 def log_request_info():
-    """Log the headers of every incoming request to help debug the auth issue."""
     app.logger.info(f"--- Request to {request.path} ---")
     app.logger.info(f"Headers: {request.headers}")
 
 
-# --- MODÈLES DE LA BASE DE DONNÉES (Architecture Multi-Tenant) ---
-
+# --- MODÈLES DE LA BASE DE DONNÉES ---
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -73,7 +84,6 @@ class Restaurant(db.Model):
     google_link = db.Column(db.String(512), nullable=True)
     tripadvisor_link = db.Column(db.String(512), nullable=True)
     enabled_languages = db.Column(db.JSON, default=['fr', 'en'])
-    
     user = db.relationship('User', back_populates='restaurant', cascade="all, delete-orphan")
     servers = db.relationship('Server', back_populates='restaurant', cascade="all, delete-orphan")
     dishes = db.relationship('Dish', back_populates='restaurant', cascade="all, delete-orphan")
@@ -95,24 +105,19 @@ class Dish(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- HELPER ---
 def get_restaurant_id_from_token():
-    """Helper to get restaurant_id from JWT claims."""
     return get_jwt()["restaurant_id"]
 
-# --- AUTHENTIFICATION & INSCRIPTION ---
 @app.route('/api/register', methods=['POST'])
 def register():
     data = request.get_json()
     email, password, restaurant_name = data.get('email'), data.get('password'), data.get('restaurant_name')
     if not all([email, password, restaurant_name]): return jsonify({"error": "Données manquantes"}), 400
     if User.query.filter_by(email=email).first(): return jsonify({"error": "Cet email est déjà utilisé"}), 409
-    
     slug = restaurant_name.lower().replace(' ', '-') + '-' + str(db.session.query(Restaurant).count() + 1)
     new_restaurant = Restaurant(name=restaurant_name, slug=slug)
     db.session.add(new_restaurant)
     db.session.flush()
-    
     hashed_password = generate_password_hash(password)
     new_user = User(email=email, password_hash=hashed_password, restaurant_id=new_restaurant.id)
     db.session.add(new_user)
@@ -127,52 +132,34 @@ def login():
     if user and check_password_hash(user.password_hash, password):
         access_token = create_access_token(
             identity=user.id, 
-            additional_claims={
-                "restaurant_id": user.restaurant_id,
-                "restaurant_slug": user.restaurant.slug 
-            }
+            additional_claims={"restaurant_id": user.restaurant_id, "restaurant_slug": user.restaurant.slug}
         )
         return jsonify(access_token=access_token)
     return jsonify({"error": "Identifiants invalides"}), 401
 
-# --- API PUBLIQUE (Page de collecte d'avis) ---
 @app.route('/api/public/restaurant/<string:slug>', methods=['GET'])
 def get_restaurant_public_data(slug):
     restaurant = Restaurant.query.filter_by(slug=slug).first_or_404()
     servers = Server.query.filter_by(restaurant_id=restaurant.id).all()
     return jsonify({
-        "name": restaurant.name,
-        "logoUrl": restaurant.logo_url,
-        "primaryColor": restaurant.primary_color,
-        "links": {
-            "google": restaurant.google_link,
-            "tripadvisor": restaurant.tripadvisor_link
-        },
+        "name": restaurant.name, "logoUrl": restaurant.logo_url, "primaryColor": restaurant.primary_color,
+        "links": {"google": restaurant.google_link, "tripadvisor": restaurant.tripadvisor_link},
         "servers": [{"id": s.id, "name": s.name, "avatar": s.avatar_url} for s in servers],
         "languages": restaurant.enabled_languages
     })
 
-# --- API PRIVÉE (Panel d'administration) ---
-
-# RESTAURANT SETTINGS
 @app.route('/api/restaurant', methods=['GET', 'PUT'])
 @jwt_required()
 def manage_restaurant_settings():
     restaurant_id = get_restaurant_id_from_token()
     restaurant = db.session.get(Restaurant, restaurant_id)
     if not restaurant: return jsonify({"error": "Restaurant non trouvé"}), 404
-
     if request.method == 'GET':
         return jsonify({
-            "name": restaurant.name,
-            "slug": restaurant.slug,
-            "logoUrl": restaurant.logo_url,
-            "primaryColor": restaurant.primary_color,
-            "googleLink": restaurant.google_link,
-            "tripadvisorLink": restaurant.tripadvisor_link,
-            "enabledLanguages": restaurant.enabled_languages
+            "name": restaurant.name, "slug": restaurant.slug, "logoUrl": restaurant.logo_url,
+            "primaryColor": restaurant.primary_color, "googleLink": restaurant.google_link,
+            "tripadvisorLink": restaurant.tripadvisor_link, "enabledLanguages": restaurant.enabled_languages
         })
-
     if request.method == 'PUT':
         data = request.get_json()
         restaurant.logo_url = data.get('logoUrl', restaurant.logo_url)
@@ -183,7 +170,6 @@ def manage_restaurant_settings():
         db.session.commit()
         return jsonify({"message": "Paramètres mis à jour"})
 
-# SERVERS
 @app.route('/api/servers', methods=['GET', 'POST'])
 @jwt_required()
 def manage_servers():
@@ -213,7 +199,6 @@ def handle_server(server_id):
         db.session.commit()
         return jsonify({"message": "Serveur supprimé"})
 
-# MENU
 @app.route('/api/menu', methods=['GET'])
 @jwt_required()
 def get_menu():
@@ -221,8 +206,7 @@ def get_menu():
     dishes = Dish.query.filter_by(restaurant_id=restaurant_id).order_by(Dish.category, Dish.name).all()
     menu = {}
     for dish in dishes:
-        if dish.category not in menu:
-            menu[dish.category] = []
+        if dish.category not in menu: menu[dish.category] = []
         menu[dish.category].append({"id": dish.id, "name": dish.name})
     return jsonify(menu)
 
@@ -252,7 +236,6 @@ def handle_dish(dish_id):
         db.session.commit()
         return jsonify({"message": "Plat supprimé"})
 
-# --- ROOT ROUTE (Added for health checks and to avoid 404) ---
 @app.route('/')
 def index():
     return jsonify({"status": "API is running"}), 200
