@@ -187,6 +187,7 @@
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            console.log("Register form submitted!"); // Ligne de débogage
             const button = document.getElementById('register-button');
             const errorP = document.getElementById('register-error');
             errorP.textContent = '';
