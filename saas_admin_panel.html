@@ -160,7 +160,7 @@
         const logoutBtn = document.getElementById('logout-btn');
         const contentArea = document.getElementById('content-area');
 
-        // --- AUTHENTICATION (CORRIGÉE) ---
+        // --- AUTHENTICATION (FINAL FIX) ---
 
         // Fonction fetch pour les routes publiques (login, register) qui n'envoient pas de token
         async function fetchPublic(url, options = {}) {
@@ -187,7 +187,6 @@
             if (token && typeof token === 'string' && token !== 'undefined' && token !== 'null') {
                 headers['Authorization'] = `Bearer ${token}`;
             } else {
-                // Si pas de token, on déconnecte et on arrête tout.
                 logout();
                 throw new Error('Token non trouvé. Reconnexion nécessaire.');
             }
@@ -231,14 +230,14 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             try {
-                // On utilise fetchPublic ici car on n'a pas encore de token
                 const data = await fetchPublic('/api/login', {
                     method: 'POST',
                     body: JSON.stringify({ email, password })
                 });
                 if (data && data.access_token) {
                     localStorage.setItem('jwt_token', data.access_token);
-                    initializeApp();
+                    // Appel de la fonction de chargement après la connexion réussie
+                    await loadAppData();
                 } else {
                     throw new Error('Réponse de connexion invalide du serveur.');
                 }
@@ -262,7 +261,6 @@
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
             try {
-                // On utilise fetchPublic ici aussi
                 const data = await fetchPublic('/api/register', {
                     method: 'POST',
                     body: JSON.stringify({ restaurant_name, email, password })
@@ -580,31 +578,48 @@
             }
         }
 
-        // --- APP INITIALIZATION ---
-        async function initializeApp() {
-            // On vérifie que le token est bien présent et valide avant de continuer
-            const token = localStorage.getItem('jwt_token');
-            if (!token || token === 'undefined' || token === 'null') {
-                authOverlay.classList.remove('hidden');
-                mainApp.classList.add('hidden');
-                return;
-            }
-
+        // --- APP INITIALIZATION (RESTRUCTURED) ---
+        
+        // Nouvelle fonction pour charger toutes les données de l'application
+        async function loadAppData() {
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
-            
-            // On charge les données pour l'onglet actif en premier
-            const hash = window.location.hash || '#dashboard';
-            switchTab(hash);
 
-            // On charge les autres onglets en arrière-plan
-            renderDashboard();
-            renderPageSettings();
-            renderTeamManagement();
-            renderMenuManagement();
+            // Afficher un état de chargement global
+            contentArea.innerHTML = `<div class="text-center p-10">Chargement de l'application...</div>`;
+
+            try {
+                // Charger toutes les données en parallèle
+                await Promise.all([
+                    renderDashboard(),
+                    renderPageSettings(),
+                    renderTeamManagement(),
+                    renderMenuManagement()
+                ]);
+                
+                // Naviguer vers le bon onglet une fois que tout est prêt
+                const hash = window.location.hash || '#dashboard';
+                switchTab(hash);
+
+            } catch (error) {
+                console.error("Failed to load app data:", error);
+                contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
+            }
         }
         
-        initializeApp();
+        // Fonction d'initialisation au chargement de la page
+        function initializeOnLoad() {
+            const token = localStorage.getItem('jwt_token');
+            if (token && token !== 'undefined' && token !== 'null') {
+                loadAppData();
+            } else {
+                authOverlay.classList.remove('hidden');
+                mainApp.classList.add('hidden');
+            }
+        }
+        
+        initializeOnLoad();
+
     });
     </script>
 </body>
