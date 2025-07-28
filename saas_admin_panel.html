@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - Avis Pro Resto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-color: #BF5B3F;
+            --background-color: #F8F9FA;
+            --surface-color: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --border-color: #DEE2E6;
+        }
+        body { font-family: 'Montserrat', sans-serif; background-color: var(--background-color); }
+        .font-serif { font-family: 'Cormorant Garamond', serif; }
+        .brand-color { color: var(--brand-color); }
+        .bg-brand-color { background-color: var(--brand-color); }
+        .bg-brand-color-light { background-color: rgba(191, 91, 63, 0.1); }
+        .border-brand-color { border-color: var(--brand-color); }
+        .hover\:bg-brand-color-dark:hover { background-color: #A64B35; }
+        .ring-brand-color { --tw-ring-color: var(--brand-color); }
+        .nav-item.active { background-color: var(--brand-color-light); color: var(--brand-color); font-weight: 600; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Auth Overlay -->
+    <div id="auth-overlay" class="fixed inset-0 bg-gray-100 z-50 flex items-center justify-center p-4">
+        <div class="w-full max-w-md">
+            <div class="bg-white p-8 rounded-lg shadow-lg text-center">
+                <h1 class="text-3xl font-bold font-serif brand-color mb-6">Avis Pro Resto</h1>
+                <!-- Login Form -->
+                <form id="login-form">
+                    <h2 class="text-xl font-semibold mb-4">Connexion</h2>
+                    <input type="email" id="login-email" placeholder="Email" class="w-full p-3 border rounded mb-3" required>
+                    <input type="password" id="login-password" placeholder="Mot de passe" class="w-full p-3 border rounded mb-4" required>
+                    <button type="submit" class="w-full bg-brand-color text-white py-3 rounded font-semibold hover:bg-brand-color-dark">Se connecter</button>
+                    <p id="login-error" class="text-red-500 text-sm mt-2 h-4"></p>
+                </form>
+                <p class="text-gray-500 my-4">ou</p>
+                <!-- Register Form -->
+                <form id="register-form">
+                    <h2 class="text-xl font-semibold mb-4">Créer un compte</h2>
+                    <input type="text" id="register-resto-name" placeholder="Nom de votre restaurant" class="w-full p-3 border rounded mb-3" required>
+                    <input type="email" id="register-email" placeholder="Email" class="w-full p-3 border rounded mb-3" required>
+                    <input type="password" id="register-password" placeholder="Mot de passe" class="w-full p-3 border rounded mb-4" required>
+                    <button type="submit" class="w-full bg-gray-700 text-white py-3 rounded font-semibold hover:bg-gray-800">S'inscrire</button>
+                    <p id="register-error" class="text-red-500 text-sm mt-2 h-4"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (hidden until authenticated) -->
+    <div id="main-app" class="hidden">
+        <div class="flex h-screen bg-gray-100">
+            <!-- Sidebar -->
+            <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex-col hidden md:flex">
+                <div class="h-20 flex items-center justify-center px-4 border-b">
+                    <h1 class="text-2xl font-bold font-serif brand-color">Avis Pro</h1>
+                </div>
+                <nav id="sidebar-nav" class="mt-6 flex-1">
+                    <a href="#dashboard" class="nav-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                        <svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                        <span>Tableau de bord</span>
+                    </a>
+                    <a href="#page-settings" class="nav-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                         <svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        <span>Gestion Page</span>
+                    </a>
+                    <a href="#team-management" class="nav-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                        <svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                        <span>Gestion Équipes</span>
+                    </a>
+                    <a href="#menu-management" class="nav-item flex items-center px-6 py-3 text-gray-600 hover:bg-gray-100">
+                        <svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                        <span>Gestion Menu</span>
+                    </a>
+                </nav>
+                <div class="p-4 border-t">
+                    <button id="logout-btn" class="w-full text-left flex items-center px-2 py-2 text-gray-600 hover:bg-red-50 hover:text-red-700 rounded-md">
+                        <svg class="h-6 w-6 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                        <span>Déconnexion</span>
+                    </button>
+                </div>
+            </aside>
+            <!-- Main content -->
+            <main class="flex-1 overflow-y-auto">
+                <div id="content-area" class="p-8">
+                    <!-- Dashboard Section -->
+                    <section id="dashboard" class="content-section fade-in">
+                        <!-- Content will be generated by JS -->
+                    </section>
+                    <!-- Page Settings Section -->
+                    <section id="page-settings" class="content-section">
+                        <!-- Content will be generated by JS -->
+                    </section>
+                    <!-- Team Management Section -->
+                    <section id="team-management" class="content-section">
+                        <!-- Content will be generated by JS -->
+                    </section>
+                    <!-- Menu Management Section -->
+                    <section id="menu-management" class="content-section">
+                        <!-- Content will be generated by JS -->
+                    </section>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const API_BASE_URL = 'https://repup-test.onrender.com'; // IMPORTANT: URL has been updated
+
+        const authOverlay = document.getElementById('auth-overlay');
+        const mainApp = document.getElementById('main-app');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const logoutBtn = document.getElementById('logout-btn');
+        const contentArea = document.getElementById('content-area');
+
+        // --- AUTHENTICATION ---
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('jwt_token');
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            
+            const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
+
+            if (response.status === 401) { logout(); throw new Error('Session expirée'); }
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({error: 'Erreur inconnue'}));
+                throw new Error(errorData.error || 'Une erreur est survenue');
+            }
+            if (response.headers.get('Content-Length') === '0' || response.status === 204) return null;
+            return response.json();
+        }
+        
+        function logout() {
+            localStorage.removeItem('jwt_token');
+            mainApp.classList.add('hidden');
+            authOverlay.classList.remove('hidden');
+        }
+
+        logoutBtn.addEventListener('click', logout);
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                const data = await fetchWithAuth('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify({ email, password })
+                });
+                localStorage.setItem('jwt_token', data.access_token);
+                initializeApp();
+            } catch (error) {
+                document.getElementById('login-error').textContent = error.message;
+            }
+        });
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const restaurant_name = document.getElementById('register-resto-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            try {
+                const data = await fetchWithAuth('/api/register', {
+                    method: 'POST',
+                    body: JSON.stringify({ restaurant_name, email, password })
+                });
+                alert(data.message);
+                loginForm.reset();
+                registerForm.reset();
+            } catch (error) {
+                document.getElementById('register-error').textContent = error.message;
+            }
+        });
+
+        // --- NAVIGATION ---
+        function switchTab(hash) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.toggle('active', item.getAttribute('href') === hash);
+            });
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.toggle('active', `#${section.id}` === hash);
+            });
+        }
+
+        document.getElementById('sidebar-nav').addEventListener('click', (e) => {
+            const navLink = e.target.closest('a');
+            if (navLink) {
+                e.preventDefault();
+                const targetId = navLink.getAttribute('href');
+                window.location.hash = targetId;
+                switchTab(targetId);
+            }
+        });
+
+        // --- RENDER FUNCTIONS ---
+        function renderDashboard() {
+            const section = document.getElementById('dashboard');
+            section.innerHTML = `
+                <h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Avis (30j)</h3><p class="text-3xl font-bold mt-1">128</p></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Note moyenne</h3><p class="text-3xl font-bold mt-1">4.8 <span class="text-yellow-400">★</span></p></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Serveur du mois</h3><p class="text-3xl font-bold mt-1">Clara</p></div>
+                    <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Feedbacks privés</h3><p class="text-3xl font-bold mt-1">3</p></div>
+                </div>
+                 <div class="bg-white p-6 rounded-lg shadow">
+                    <h2 class="text-2xl font-bold font-serif mb-4">Tendance des avis</h2>
+                    <canvas id="reviewsTrendChart"></canvas>
+                </div>
+            `;
+            const ctx = document.getElementById('reviewsTrendChart').getContext('2d');
+            new Chart(ctx, { type: 'line', data: { labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'], datasets: [{ label: 'Avis reçus', data: [65, 59, 80, 81, 56, 55, 128], borderColor: 'var(--brand-color)', backgroundColor: 'var(--brand-color-light)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
+        }
+
+        async function renderPageSettings() {
+            const section = document.getElementById('page-settings');
+            const settings = await fetchWithAuth('/api/restaurant');
+            section.innerHTML = `
+                <h1 class="text-4xl font-bold font-serif mb-6">Gestion de la page</h1>
+                <form id="page-settings-form">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white p-8 rounded-lg shadow space-y-6">
+                            <h2 class="text-2xl font-bold font-serif">Personnalisation</h2>
+                            <div>
+                                <label for="logo-url" class="block text-sm font-medium text-gray-700">URL du logo</label>
+                                <input type="url" id="logo-url" value="${settings.logoUrl || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                            <div>
+                                <label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label>
+                                <input type="color" id="primary-color" value="${settings.primaryColor || '#BF5B3F'}" class="mt-1 h-10 w-10 rounded-md border-gray-300">
+                            </div>
+                        </div>
+                        <div class="bg-white p-8 rounded-lg shadow space-y-6">
+                            <h2 class="text-2xl font-bold font-serif">Liens & Langues</h2>
+                            <div>
+                                <label for="google-link" class="block text-sm font-medium text-gray-700">Lien avis Google</label>
+                                <input type="url" id="google-link" value="${settings.googleLink || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                            <div>
+                                <label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien avis TripAdvisor</label>
+                                <input type="url" id="tripadvisor-link" value="${settings.tripadvisorLink || ''}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 text-right">
+                        <button type="submit" class="bg-brand-color text-white px-6 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Enregistrer les modifications</button>
+                    </div>
+                </form>
+            `;
+            document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
+        }
+
+        async function renderTeamManagement() {
+            const section = document.getElementById('team-management');
+            const servers = await fetchWithAuth('/api/servers');
+            section.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-4xl font-bold font-serif">Gestion des équipes</h1>
+                    <button id="add-server-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un serveur</button>
+                </div>
+                <div class="bg-white p-8 rounded-lg shadow">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50"><tr><th class="p-4">Nom</th><th class="p-4">Actions</th></tr></thead>
+                        <tbody id="servers-list">
+                            ${servers.map(s => `<tr><td class="p-4">${s.name}</td><td class="p-4"><button class="delete-server-btn text-red-500" data-id="${s.id}">Supprimer</button></td></tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            document.getElementById('add-server-btn').addEventListener('click', handleAddServer);
+            document.querySelectorAll('.delete-server-btn').forEach(b => b.addEventListener('click', handleDeleteServer));
+        }
+
+        async function renderMenuManagement() {
+             const section = document.getElementById('menu-management');
+             const menu = await fetchWithAuth('/api/menu');
+             section.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-4xl font-bold font-serif">Gestion du menu</h1>
+                    <button id="add-dish-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un plat</button>
+                </div>
+                <div id="menu-list" class="bg-white p-8 rounded-lg shadow">
+                    ${Object.keys(menu).length === 0 ? '<p>Aucun plat ajouté.</p>' :
+                    Object.entries(menu).map(([category, dishes]) => `
+                        <div class="mb-6">
+                            <h3 class="text-lg font-semibold border-b pb-2 mb-3">${category}</h3>
+                            <ul class="space-y-2">
+                                ${dishes.map(d => `<li class="flex justify-between items-center p-2"><span>${d.name}</span><button class="delete-dish-btn text-red-500" data-id="${d.id}">Supprimer</button></li>`).join('')}
+                            </ul>
+                        </div>
+                    `).join('')}
+                </div>
+             `;
+             document.getElementById('add-dish-btn').addEventListener('click', handleAddDish);
+             document.querySelectorAll('.delete-dish-btn').forEach(b => b.addEventListener('click', handleDeleteDish));
+        }
+
+        // --- HANDLERS for CRUD operations ---
+        async function handleSaveSettings(e) {
+            e.preventDefault();
+            const data = {
+                logoUrl: document.getElementById('logo-url').value,
+                primaryColor: document.getElementById('primary-color').value,
+                googleLink: document.getElementById('google-link').value,
+                tripadvisorLink: document.getElementById('tripadvisor-link').value,
+            };
+            try {
+                await fetchWithAuth('/api/restaurant', { method: 'PUT', body: JSON.stringify(data) });
+                alert('Paramètres enregistrés !');
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            }
+        }
+        
+        async function handleAddServer() {
+            const name = prompt("Nom du nouveau serveur :");
+            if (name) {
+                await fetchWithAuth('/api/servers', { method: 'POST', body: JSON.stringify({ name }) });
+                renderTeamManagement();
+            }
+        }
+        async function handleDeleteServer(e) {
+            const id = e.target.dataset.id;
+            if (confirm("Supprimer ce serveur ?")) {
+                await fetchWithAuth(`/api/servers/${id}`, { method: 'DELETE' });
+                renderTeamManagement();
+            }
+        }
+        async function handleAddDish() {
+            const name = prompt("Nom du nouveau plat :");
+            const category = prompt("Catégorie du plat (ex: Entrées, Plats...):");
+            if (name && category) {
+                await fetchWithAuth('/api/dishes', { method: 'POST', body: JSON.stringify({ name, category }) });
+                renderMenuManagement();
+            }
+        }
+        async function handleDeleteDish(e) {
+            const id = e.target.dataset.id;
+            if (confirm("Supprimer ce plat ?")) {
+                await fetchWithAuth(`/api/dishes/${id}`, { method: 'DELETE' });
+                renderMenuManagement();
+            }
+        }
+
+        // --- APP INITIALIZATION ---
+        async function initializeApp() {
+            if (!localStorage.getItem('jwt_token')) {
+                authOverlay.classList.remove('hidden');
+                mainApp.classList.add('hidden');
+                return;
+            }
+            authOverlay.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            
+            renderDashboard();
+            renderPageSettings();
+            renderTeamManagement();
+            renderMenuManagement();
+
+            const hash = window.location.hash || '#dashboard';
+            switchTab(hash);
+        }
+        
+        initializeApp();
+    });
+    </script>
+</body>
+</html>
