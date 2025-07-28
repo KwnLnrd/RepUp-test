@@ -50,7 +50,6 @@ class Restaurant(db.Model):
     servers = db.relationship('Server', back_populates='restaurant', cascade="all, delete-orphan")
     dishes = db.relationship('Dish', back_populates='restaurant', cascade="all, delete-orphan")
 
-# --- MODÈLES MANQUANTS AJOUTÉS ICI ---
 class Server(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
@@ -64,13 +63,13 @@ class Dish(db.Model):
     category = db.Column(db.String(50), nullable=False)
     restaurant_id = db.Column(db.Integer, db.ForeignKey('restaurant.id'), nullable=False, index=True)
     restaurant = db.relationship('Restaurant', back_populates='dishes')
-# --- FIN DES MODÈLES AJOUTÉS ---
 
 with app.app_context():
     db.create_all()
 
-# --- HELPER ---
-@jwt_required()
+# --- HELPER (CORRIGÉ) ---
+# Le décorateur @jwt_required a été retiré de cette fonction.
+# La validation du token est déjà faite par le décorateur sur le point d'API appelant.
 def get_restaurant_id_from_token():
     """Helper to get restaurant_id from JWT claims."""
     return get_jwt()["restaurant_id"]
@@ -100,7 +99,14 @@ def login():
     email, password = data.get('email'), data.get('password')
     user = User.query.filter_by(email=email).first()
     if user and check_password_hash(user.password_hash, password):
-        access_token = create_access_token(identity=user.id, additional_claims={"restaurant_id": user.restaurant_id})
+        # On ajoute le slug du restaurant dans le token pour pouvoir générer le QR code côté client
+        access_token = create_access_token(
+            identity=user.id, 
+            additional_claims={
+                "restaurant_id": user.restaurant_id,
+                "restaurant_slug": user.restaurant.slug 
+            }
+        )
         return jsonify(access_token=access_token)
     return jsonify({"error": "Identifiants invalides"}), 401
 
@@ -134,6 +140,7 @@ def manage_restaurant_settings():
     if request.method == 'GET':
         return jsonify({
             "name": restaurant.name,
+            "slug": restaurant.slug, # On retourne le slug ici
             "logoUrl": restaurant.logo_url,
             "primaryColor": restaurant.primary_color,
             "googleLink": restaurant.google_link,
