@@ -288,16 +288,14 @@
             new Chart(ctx, { type: 'line', data: { labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'], datasets: [{ label: 'Avis reçus', data: [65, 59, 80, 81, 56, 55, 128], borderColor: 'var(--brand-color)', backgroundColor: 'var(--brand-color-light)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
         }
         
-        // --- RENDER PAGE SETTINGS (CORRIGÉE) ---
+        // --- RENDER PAGE SETTINGS (CORRIGÉE ET AMÉLIORÉE) ---
         async function renderPageSettings() {
             const section = document.getElementById('page-settings');
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
             try {
-                // On suppose que le backend renvoie maintenant un champ 'slug'.
                 const settings = await fetchWithAuth('/api/restaurant');
                 const availableLangs = { 'fr': 'Français', 'en': 'English', 'es': 'Español', 'it': 'Italiano' };
                 
-                // Codage défensif : s'assurer que enabledLanguages est un tableau
                 const enabledLanguages = Array.isArray(settings.enabledLanguages) ? settings.enabledLanguages : [];
 
                 section.innerHTML = `
@@ -351,17 +349,8 @@
                             </div>
                             <!-- Colonne 3: QR Code -->
                             <div class="lg:col-span-1">
-                                <div class="card sticky top-8">
-                                    <h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2>
-                                    <p class="text-sm text-gray-600 mb-4">Vos clients scannent ce code pour laisser un avis. Imprimez-le sur vos menus, tables ou additions.</p>
-                                    <div class="flex justify-center items-center bg-gray-50 p-4 rounded-lg">
-                                        <div id="qrcode-container" class="p-2 bg-white rounded-md shadow-inner"></div>
-                                    </div>
-                                    <a id="download-qr-btn" href="#" class="mt-4 block w-full text-center bg-gray-800 text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-900 transition-colors">Télécharger le QR Code</a>
-                                    <div class="mt-4">
-                                        <label class="text-sm font-medium text-gray-700">Votre lien direct :</label>
-                                        <input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier">
-                                    </div>
+                                <div class="card sticky top-8" id="qr-code-card">
+                                    <!-- Le contenu du QR Code sera injecté ici par JS -->
                                 </div>
                             </div>
                         </div>
@@ -374,18 +363,33 @@
                 // --- LOGIQUE POUR LES ÉLÉMENTS NOUVELLEMENT RENDUS ---
 
                 // Génération du QR Code
+                const qrCard = document.getElementById('qr-code-card');
                 const slug = settings.slug;
+
                 if (!slug) {
-                    // Si le slug est manquant, on ne peut pas générer le QR code. On affiche une erreur.
-                    document.getElementById('qrcode-container').parentElement.innerHTML = '<p class="text-red-500 text-center">Le slug du restaurant est manquant. Impossible de générer le QR Code.</p>';
-                    document.getElementById('download-qr-btn').classList.add('hidden');
-                    document.getElementById('review-page-link').value = 'Slug manquant';
+                    qrCard.innerHTML = `
+                        <h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2>
+                        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center">
+                            <p class="font-bold">Erreur de configuration</p>
+                            <p class="text-sm mt-1">Le "slug" du restaurant est manquant. Le QR Code ne peut pas être généré. Veuillez contacter le support.</p>
+                        </div>`;
                 } else {
-                    const reviewPageUrl = `${window.location.origin}/r/${slug}`; // Utilise une URL relative pour la robustesse
+                    qrCard.innerHTML = `
+                        <h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2>
+                        <p class="text-sm text-gray-600 mb-4">Vos clients scannent ce code pour laisser un avis. Imprimez-le sur vos menus, tables ou additions.</p>
+                        <div class="flex justify-center items-center bg-gray-50 p-4 rounded-lg">
+                            <div id="qrcode-container" class="p-2 bg-white rounded-md shadow-inner"></div>
+                        </div>
+                        <a id="download-qr-btn" href="#" class="mt-4 block w-full text-center bg-gray-800 text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-900 transition-colors">Télécharger le QR Code</a>
+                        <div class="mt-4">
+                            <label class="text-sm font-medium text-gray-700">Votre lien direct :</label>
+                            <input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier">
+                        </div>`;
                     
+                    const reviewPageUrl = `${window.location.origin}/r/${slug}`;
                     document.getElementById('review-page-link').value = reviewPageUrl;
+                    
                     const qrcodeContainer = document.getElementById('qrcode-container');
-                    qrcodeContainer.innerHTML = ''; // Vider l'ancien QR code
                     new QRCode(qrcodeContainer, {
                         text: reviewPageUrl,
                         width: 200,
@@ -395,7 +399,6 @@
                         correctLevel : QRCode.CorrectLevel.H
                     });
 
-                    // Télécharger le QR Code
                     document.getElementById('download-qr-btn').addEventListener('click', (e) => {
                         e.preventDefault();
                         const canvas = qrcodeContainer.querySelector('canvas');
@@ -406,18 +409,14 @@
                             link.click();
                         }
                     });
-                }
 
-                // Copier le lien dans le presse-papiers
-                const reviewLinkInput = document.getElementById('review-page-link');
-                reviewLinkInput.addEventListener('click', () => {
-                    if(settings.slug) {
-                        reviewLinkInput.select();
+                    document.getElementById('review-page-link').addEventListener('click', () => {
+                        const input = document.getElementById('review-page-link');
+                        input.select();
                         document.execCommand('copy');
-                        const originalTitle = reviewLinkInput.title;
                         alert('Lien copié !');
-                    }
-                });
+                    });
+                }
 
                 // Aperçu du logo
                 document.getElementById('logo-url').addEventListener('blur', (e) => {
@@ -431,7 +430,11 @@
                 document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
 
             } catch (error) {
-                section.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Erreur lors du chargement des paramètres:</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
+                let userFriendlyMessage = error.message;
+                if (error.message.includes('422')) {
+                    userFriendlyMessage = `Le serveur a rejeté la requête car les données semblaient invalides (Erreur 422).<br>Cela peut arriver juste après une inscription.<br><b>Veuillez essayer de vous déconnecter et de vous reconnecter.</b>`;
+                }
+                section.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Erreur lors du chargement des paramètres :</p><p class="text-gray-600 mt-2">${userFriendlyMessage}</p></div>`;
             }
         }
 
