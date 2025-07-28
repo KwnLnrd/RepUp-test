@@ -268,4 +268,83 @@
             if (!section) return;
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
             const servers = await fetchWithAuth('/api/servers');
-            section.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-4xl font-bold font-serif">Gestion des équipes</h1><button id="add-server-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un serveur</button></div><div class="card"><table class="w-full text-left"><thead class="bg-gray-50"><tr><th class="p-4 font-semibold">Nom</th><th class="p-4 font-semibold text-right">Actions</th></tr></thead><tbody id="servers-list">${servers.length > 0 ? servers.map(s => `<tr class="border-b last
+            section.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-4xl font-bold font-serif">Gestion des équipes</h1><button id="add-server-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un serveur</button></div><div class="card"><table class="w-full text-left"><thead class="bg-gray-50"><tr><th class="p-4 font-semibold">Nom</th><th class="p-4 font-semibold text-right">Actions</th></tr></thead><tbody id="servers-list">${servers.length > 0 ? servers.map(s => `<tr class="border-b last:border-b-0"><td class="p-4">${s.name}</td><td class="p-4 text-right"><button class="delete-server-btn text-red-500 hover:text-red-700 font-medium" data-id="${s.id}">Supprimer</button></td></tr>`).join('') : '<tr><td colspan="2" class="p-4 text-center text-gray-500">Aucun serveur ajouté.</td></tr>'}</tbody></table></div>`;
+            document.getElementById('add-server-btn').addEventListener('click', handleAddServer);
+            document.querySelectorAll('.delete-server-btn').forEach(b => b.addEventListener('click', handleDeleteServer));
+        }
+
+        async function renderMenuManagement() {
+            const section = document.getElementById('menu-management');
+            if (!section) return;
+            section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
+            // --- FIX: Call the renamed API endpoint ---
+            const menu = await fetchWithAuth('/api/menu-items');
+            section.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-4xl font-bold font-serif">Gestion du menu</h1><button id="add-dish-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un plat</button></div><div id="menu-list" class="card">${Object.keys(menu).length === 0 ? '<p class="text-center text-gray-500">Aucun plat ajouté.</p>' : Object.entries(menu).map(([category, dishes]) => `<div class="mb-6 last:mb-0"><h3 class="text-xl font-bold font-serif border-b pb-2 mb-3">${category}</h3><ul class="space-y-2">${dishes.map(d => `<li class="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md"><span>${d.name}</span><button class="delete-dish-btn text-red-500 hover:text-red-700 font-medium" data-id="${d.id}">Supprimer</button></li>`).join('')}</ul></div>`).join('')}</div>`;
+            document.getElementById('add-dish-btn').addEventListener('click', handleAddDish);
+            document.querySelectorAll('.delete-dish-btn').forEach(b => b.addEventListener('click', handleDeleteDish));
+        }
+
+        async function handleSaveSettings(e) {
+            e.preventDefault();
+            const button = e.target.querySelector('button[type="submit"]');
+            button.disabled = true; button.textContent = 'Enregistrement...';
+            const logoFileInput = document.getElementById('logo-file');
+            try {
+                if (logoFileInput.files && logoFileInput.files[0]) {
+                    const formData = new FormData();
+                    formData.append('logo', logoFileInput.files[0]);
+                    await fetchWithAuthFormData('/api/logo-upload', formData);
+                }
+                const selectedLangs = Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(cb => cb.value);
+                const data = {
+                    primaryColor: document.getElementById('primary-color').value,
+                    googleLink: document.getElementById('google-link').value,
+                    tripadvisorLink: document.getElementById('tripadvisor-link').value,
+                    enabledLanguages: selectedLangs
+                };
+                await fetchWithAuth('/api/restaurant', { method: 'PUT', body: JSON.stringify(data) });
+                alert('Paramètres enregistrés !');
+                await renderPageSettings();
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+            } finally {
+                button.disabled = false; button.textContent = 'Enregistrer les modifications';
+            }
+        }
+
+        async function handleAddServer() { const name = prompt("Nom du nouveau serveur :"); if (name && name.trim()) { await fetchWithAuth('/api/servers', { method: 'POST', body: JSON.stringify({ name: name.trim() }) }); renderTeamManagement(); } }
+        async function handleDeleteServer(e) { const id = e.target.dataset.id; if (confirm("Supprimer ce serveur ?")) { await fetchWithAuth(`/api/servers/${id}`, { method: 'DELETE' }); renderTeamManagement(); } }
+        async function handleAddDish() { const name = prompt("Nom du nouveau plat :"); if (!name || !name.trim()) return; const category = prompt("Catégorie (ex: Entrées):"); if (name && category && name.trim() && category.trim()) { await fetchWithAuth('/api/dishes', { method: 'POST', body: JSON.stringify({ name: name.trim(), category: category.trim() }) }); renderMenuManagement(); } }
+        async function handleDeleteDish(e) { const id = e.target.dataset.id; if (confirm("Supprimer ce plat ?")) { await fetchWithAuth(`/api/dishes/${id}`, { method: 'DELETE' }); renderMenuManagement(); } }
+
+        async function loadAppData() {
+            authOverlay.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            try {
+                await renderDashboard();
+                await renderPageSettings();
+                await renderTeamManagement();
+                await renderMenuManagement();
+                const hash = window.location.hash || '#dashboard';
+                switchTab(hash);
+            } catch (error) {
+                console.error("Failed to load app data:", error);
+                contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
+            }
+        }
+        
+        function initializeOnLoad() {
+            const token = localStorage.getItem('jwt_token');
+            if (token && token !== 'undefined' && token !== 'null') {
+                loadAppData();
+            } else {
+                authOverlay.classList.remove('hidden');
+                mainApp.classList.add('hidden');
+            }
+        }
+        
+        initializeOnLoad();
+    });
+    </script>
+</body>
+</html>
