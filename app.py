@@ -12,7 +12,19 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 # --- CONFIGURATION INITIALE ---
 load_dotenv()
 app = Flask(__name__)
-CORS(app, supports_credentials=True)
+
+# --- CORS CONFIGURATION (REVISED) ---
+# This is a more secure and correct CORS configuration for applications
+# that use credentials (like JWT tokens in headers).
+# The browser requires a specific origin to be listed, not a wildcard ('*'),
+# when `supports_credentials` is True.
+FRONTEND_URL = os.getenv("FRONTEND_URL", "https://repup-avis.netlify.app")
+# Add any other origins you might use for development, e.g., from a local server.
+# The URL for VS Code's "Live Server" is often http://127.0.0.1:5500
+CORS(app, 
+     origins=[FRONTEND_URL, "http://127.0.0.1:5500"], 
+     supports_credentials=True
+)
 
 # --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT ---
 database_url = os.getenv('DATABASE_URL')
