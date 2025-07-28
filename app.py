@@ -28,11 +28,10 @@ CORS(app,
      allow_headers=["Authorization", "Content-Type"]
 )
 
-# --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT (CORRIGÉE) ---
+# --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT ---
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
     raise RuntimeError("DATABASE_URL is not set.")
-# The new 'psycopg' library requires the URL scheme to be 'postgresql+psycopg'
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
 elif database_url.startswith("postgresql://"):
@@ -63,13 +62,6 @@ def expired_token_callback(jwt_header, jwt_payload):
 def missing_token_callback(reason):
     app.logger.warning(f"Missing token: {reason}")
     return jsonify({"message": "Token d'authentification manquant.", "error": "authorization_required"}), 401
-
-# --- LOGGING HOOK ---
-@app.before_request
-def log_request_info():
-    app.logger.info(f"--- Request to {request.path} ---")
-    app.logger.info(f"Headers: {request.headers}")
-
 
 # --- MODÈLES DE LA BASE DE DONNÉES ---
 class User(db.Model):
@@ -134,8 +126,10 @@ def login():
     email, password = data.get('email'), data.get('password')
     user = User.query.filter_by(email=email).first()
     if user and check_password_hash(user.password_hash, password):
+        # --- FINAL FIX: Convert user.id to a string ---
+        # The JWT identity must be a string, not an integer.
         access_token = create_access_token(
-            identity=user.id, 
+            identity=str(user.id), 
             additional_claims={"restaurant_id": user.restaurant_id, "restaurant_slug": user.restaurant.slug}
         )
         return jsonify(access_token=access_token)
