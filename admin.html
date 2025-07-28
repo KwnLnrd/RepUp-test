@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de Bord - Avis Pro Resto</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-color: #BF5B3F;
+            --brand-color-light: rgba(191, 91, 63, 0.1);
+            --brand-color-dark: #A64B35;
+            --background-color: #F8F9FA;
+            --surface-color: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --border-color: #DEE2E6;
+            --danger-color: #D32F2F;
+            --success-color: #28a745;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+        }
+        .font-serif {
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .brand-color { color: var(--brand-color); }
+        .bg-brand-color { background-color: var(--brand-color); }
+        .bg-brand-color-light { background-color: var(--brand-color-light); }
+        .border-brand-color { border-color: var(--brand-color); }
+        .hover\:bg-brand-color-dark:hover { background-color: var(--brand-color-dark); }
+        .ring-brand-color { --tw-ring-color: var(--brand-color); }
+        .sidebar-icon {
+            width: 24px;
+            height: 24px;
+        }
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--background-color);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+        /* Animation */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="flex h-screen bg-gray-100">
+        <!-- Sidebar -->
+        <aside class="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex-col hidden md:flex">
+            <!-- Logo -->
+            <div class="h-20 flex items-center justify-center px-4 border-b border-gray-200">
+                 <div class="flex items-center">
+                    <svg class="h-8 w-8 mr-2 brand-color" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                    <span class="text-2xl font-bold font-serif text-gray-800">Avis Pro</span>
+                </div>
+            </div>
+            <!-- Navigation -->
+            <nav id="sidebar-nav" class="mt-6 flex-1">
+                <a href="#dashboard" class="nav-item active flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100">
+                    <svg class="sidebar-icon mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                    <span>Tableau de bord</span>
+                </a>
+                <a href="#page-settings" class="nav-item flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100">
+                    <svg class="sidebar-icon mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    <span>Gestion de la page</span>
+                </a>
+                <a href="#team-management" class="nav-item flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100">
+                    <svg class="sidebar-icon mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                    <span>Gestion des équipes</span>
+                </a>
+                <a href="#menu-management" class="nav-item flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100">
+                    <svg class="sidebar-icon mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                    <span>Gestion du menu</span>
+                </a>
+                <a href="#subscription" class="nav-item flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100">
+                    <svg class="sidebar-icon mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                    <span>Abonnement</span>
+                </a>
+            </nav>
+            <!-- User profile -->
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center">
+                    <img class="h-10 w-10 rounded-full object-cover" src="https://placehold.co/100x100/A64B35/FFFFFF?text=M.R" alt="User avatar">
+                    <div class="ml-3">
+                        <p class="text-sm font-semibold">Marco Rossi</p>
+                        <a href="#" class="text-xs text-red-600 hover:underline">Déconnexion</a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 overflow-y-auto">
+            <div class="p-8">
+                <!-- Onboarding Banner -->
+                <div id="onboarding-banner" class="hidden bg-brand-color-light border-l-4 border-brand-color p-6 rounded-r-lg mb-8">
+                    <div class="flex">
+                        <div class="py-1"><svg class="h-6 w-6 brand-color mr-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                        <div>
+                            <p class="font-bold font-serif text-lg brand-color">Bienvenue sur Avis Pro Resto !</p>
+                            <p class="text-sm text-gray-700 mt-1">Complétez ces 4 étapes pour configurer votre page et commencer à collecter des avis.</p>
+                            <div id="onboarding-steps" class="mt-4 space-y-2">
+                                <!-- Steps will be injected by JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main content sections -->
+                <div id="content-area">
+                    <!-- Dashboard Section -->
+                    <section id="dashboard" class="content-section fade-in">
+                        <h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1>
+                        <!-- Stats Grid -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Avis (30j)</h3><p class="text-3xl font-bold mt-1">128</p></div>
+                            <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Note moyenne</h3><p class="text-3xl font-bold mt-1">4.8 <span class="text-yellow-400">★</span></p></div>
+                            <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Serveur du mois</h3><p class="text-3xl font-bold mt-1">Clara</p></div>
+                            <div class="bg-white p-6 rounded-lg shadow"><h3 class="text-sm font-semibold text-gray-500">Feedbacks privés</h3><p class="text-3xl font-bold mt-1">3</p></div>
+                        </div>
+                        <!-- QR Code & Chart -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow flex flex-col items-center justify-center text-center">
+                                <h2 class="text-2xl font-bold font-serif mb-4">Votre QR Code</h2>
+                                <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://avisproresto.com/le-bistrot-gourmand" alt="QR Code" class="rounded-lg">
+                                <p class="text-sm text-gray-500 mt-4">avisproresto.com/le-bistrot-gourmand</p>
+                                <button class="mt-4 bg-brand-color text-white px-5 py-2 rounded-full font-semibold text-sm hover:bg-brand-color-dark transition-colors">Télécharger</button>
+                            </div>
+                            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow">
+                                <h2 class="text-2xl font-bold font-serif mb-4">Tendance des avis</h2>
+                                <canvas id="reviewsTrendChart"></canvas>
+                            </div>
+                        </div>
+                    </section>
+                    
+                    <!-- Page Settings Section -->
+                    <section id="page-settings" class="content-section hidden">
+                         <h1 class="text-4xl font-bold font-serif mb-6">Gestion de la page</h1>
+                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <!-- Personnalisation -->
+                            <div class="bg-white p-8 rounded-lg shadow">
+                                <h2 class="text-2xl font-bold font-serif mb-6">Personnalisation</h2>
+                                <div class="space-y-6">
+                                    <div>
+                                        <label for="logo-upload" class="block text-sm font-medium text-gray-700">Logo du restaurant</label>
+                                        <div class="mt-2 flex items-center space-x-4">
+                                            <img id="logo-preview" class="h-16 w-16 rounded-full object-cover bg-gray-100" src="https://placehold.co/100x100/BF5B3F/FFFFFF?text=Logo" alt="Logo preview">
+                                            <input type="file" id="logo-upload" class="hidden">
+                                            <button onclick="document.getElementById('logo-upload').click()" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Changer</button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label>
+                                        <div class="mt-2 flex items-center space-x-2">
+                                            <input type="color" id="primary-color" value="#BF5B3F" class="h-10 w-10 rounded-md border-gray-300">
+                                            <input type="text" value="#BF5B3F" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-brand-color focus:ring-brand-color sm:text-sm">
+                                        </div>
+                                    </div>
+                                    <div class="pt-4 text-right">
+                                        <button class="bg-brand-color text-white px-6 py-2 rounded-full font-semibold hover:bg-brand-color-dark transition-colors">Enregistrer</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Liens & Langues -->
+                            <div class="bg-white p-8 rounded-lg shadow">
+                                <h2 class="text-2xl font-bold font-serif mb-6">Liens de redirection & Langues</h2>
+                                <div class="space-y-6">
+                                    <div>
+                                        <label for="google-link" class="block text-sm font-medium text-gray-700">Lien avis Google</label>
+                                        <input type="url" id="google-link" placeholder="https://search.google.com/local/writereview?placeid=..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    </div>
+                                    <div>
+                                        <label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien avis TripAdvisor</label>
+                                        <input type="url" id="tripadvisor-link" placeholder="https://www.tripadvisor.fr/UserReview-g..." class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                    </div>
+                                    <div>
+                                        <h3 class="text-sm font-medium text-gray-700">Langues proposées</h3>
+                                        <div class="mt-2 grid grid-cols-2 gap-4">
+                                            <label class="flex items-center"><input type="checkbox" checked class="h-4 w-4 rounded border-gray-300 text-brand-color focus:ring-brand-color"> <span class="ml-2 text-sm">Français 🇫🇷</span></label>
+                                            <label class="flex items-center"><input type="checkbox" checked class="h-4 w-4 rounded border-gray-300 text-brand-color focus:ring-brand-color"> <span class="ml-2 text-sm">Anglais 🇬🇧</span></label>
+                                            <label class="flex items-center"><input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-brand-color focus:ring-brand-color"> <span class="ml-2 text-sm">Espagnol 🇪🇸</span></label>
+                                            <label class="flex items-center"><input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-brand-color focus:ring-brand-color"> <span class="ml-2 text-sm">Italien 🇮🇹</span></label>
+                                        </div>
+                                    </div>
+                                     <div class="pt-4 text-right">
+                                        <button class="bg-brand-color text-white px-6 py-2 rounded-full font-semibold hover:bg-brand-color-dark transition-colors">Enregistrer</button>
+                                    </div>
+                                </div>
+                            </div>
+                         </div>
+                    </section>
+
+                    <!-- Team Management Section -->
+                    <section id="team-management" class="content-section hidden">
+                        <h1 class="text-4xl font-bold font-serif mb-6">Gestion des équipes</h1>
+                        <div class="bg-white p-8 rounded-lg shadow">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-2xl font-bold font-serif">Liste des serveurs</h2>
+                                <button id="add-server-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-sm">Ajouter un serveur</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="p-4 text-sm font-semibold text-gray-600">Nom</th>
+                                            <th class="p-4 text-sm font-semibold text-gray-600">Avis (30j)</th>
+                                            <th class="p-4 text-sm font-semibold text-gray-600">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="servers-list">
+                                        <!-- Server rows will be injected by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Menu Management Section -->
+                    <section id="menu-management" class="content-section hidden">
+                        <h1 class="text-4xl font-bold font-serif mb-6">Gestion du menu</h1>
+                        <div class="bg-white p-8 rounded-lg shadow">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="text-2xl font-bold font-serif">Plats et catégories</h2>
+                                <button id="add-dish-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-sm">Ajouter un plat</button>
+                            </div>
+                            <div id="menu-list">
+                                <!-- Menu categories and dishes will be injected by JS -->
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Subscription Section -->
+                    <section id="subscription" class="content-section hidden">
+                        <h1 class="text-4xl font-bold font-serif mb-6">Abonnement</h1>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div class="lg:col-span-2 bg-white p-8 rounded-lg shadow">
+                                <h2 class="text-2xl font-bold font-serif mb-2">Votre Plan Actuel</h2>
+                                <p class="text-lg font-semibold brand-color mb-6">Premium</p>
+                                <div class="space-y-4 text-gray-700">
+                                    <p>Votre abonnement se renouvelle le <strong>15 août 2025</strong>.</p>
+                                    <p>Vous bénéficiez des avis et serveurs illimités, ainsi que des analyses détaillées.</p>
+                                    <div class="pt-4">
+                                        <button class="text-brand-color font-semibold hover:underline">Changer de plan</button>
+                                        <button class="ml-6 text-gray-500 font-semibold hover:underline">Annuler l'abonnement</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-white p-8 rounded-lg shadow">
+                                <h2 class="text-2xl font-bold font-serif mb-6">Facturation</h2>
+                                <div class="space-y-4">
+                                    <div class="flex justify-between items-center">
+                                        <p>Facture #2024-07-15</p>
+                                        <a href="#" class="text-brand-color font-semibold text-sm hover:underline">Télécharger</a>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <p>Facture #2024-06-15</p>
+                                        <a href="#" class="text-brand-color font-semibold text-sm hover:underline">Télécharger</a>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <p>Facture #2024-05-15</p>
+                                        <a href="#" class="text-brand-color font-semibold text-sm hover:underline">Télécharger</a>
+                                    </div>
+                                    <div class="pt-4">
+                                        <button class="text-gray-800 font-semibold hover:underline">Gérer les informations de paiement</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal for adding/editing server -->
+    <div id="server-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <h2 id="server-modal-title" class="text-2xl font-bold font-serif mb-6">Ajouter un serveur</h2>
+            <form id="server-form">
+                <input type="hidden" id="server-id">
+                <div>
+                    <label for="server-name" class="block text-sm font-medium text-gray-700">Nom du serveur</label>
+                    <input type="text" id="server-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                </div>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button type="button" id="cancel-server-modal" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Annuler</button>
+                    <button type="submit" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-sm">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for adding/editing dish -->
+    <div id="dish-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+            <h2 id="dish-modal-title" class="text-2xl font-bold font-serif mb-6">Ajouter un plat</h2>
+            <form id="dish-form">
+                <input type="hidden" id="dish-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="dish-name" class="block text-sm font-medium text-gray-700">Nom du plat</label>
+                        <input type="text" id="dish-name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                    </div>
+                    <div>
+                        <label for="dish-category" class="block text-sm font-medium text-gray-700">Catégorie</label>
+                        <select id="dish-category" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
+                            <!-- Options will be populated by JS -->
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-4">
+                    <button type="button" id="cancel-dish-modal" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">Annuler</button>
+                    <button type="submit" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-sm">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- MOCK DATA ---
+        let servers = [
+            { id: 1, name: 'Clara', reviews: 32 },
+            { id: 2, name: 'Julien', reviews: 28 },
+            { id: 3, name: 'Amina', reviews: 25 },
+            { id: 4, name: 'Lucas', reviews: 19 },
+        ];
+
+        let menu = {
+            "Entrées": [
+                { id: 101, name: 'Burrata crémeuse' },
+                { id: 102, name: 'Vitello Tonnato' },
+            ],
+            "Pâtes": [
+                { id: 201, name: 'Pâtes à la truffe' },
+                { id: 202, name: 'Linguine alle Vongole' },
+            ],
+            "Desserts": [
+                { id: 301, name: 'Tiramisu Classico' },
+                { id: 302, name: 'Panna Cotta' },
+            ]
+        };
+        
+        const onboardingState = {
+            logo: false,
+            restaurantName: true, // Assume name is pre-filled
+            server: false,
+            googleLink: false,
+        };
+
+        // --- DOM Elements ---
+        const navItems = document.querySelectorAll('.nav-item');
+        const contentSections = document.querySelectorAll('.content-section');
+        const addServerBtn = document.getElementById('add-server-btn');
+        const serverModal = document.getElementById('server-modal');
+        const cancelServerModalBtn = document.getElementById('cancel-server-modal');
+        const serverForm = document.getElementById('server-form');
+        const serversList = document.getElementById('servers-list');
+        const addDishBtn = document.getElementById('add-dish-btn');
+        const dishModal = document.getElementById('dish-modal');
+        const cancelDishModalBtn = document.getElementById('cancel-dish-modal');
+        const dishForm = document.getElementById('dish-form');
+        const menuListContainer = document.getElementById('menu-list');
+        const onboardingBanner = document.getElementById('onboarding-banner');
+
+        // --- NAVIGATION ---
+        function switchTab(hash) {
+            navItems.forEach(item => {
+                item.classList.toggle('active', item.getAttribute('href') === hash);
+                item.classList.toggle('bg-brand-color-light', item.getAttribute('href') === hash);
+                item.classList.toggle('brand-color', item.getAttribute('href') === hash);
+            });
+            contentSections.forEach(section => {
+                section.classList.toggle('hidden', `#${section.id}` !== hash);
+                if (`#${section.id}` === hash) {
+                    section.classList.add('fade-in');
+                }
+            });
+        }
+
+        document.getElementById('sidebar-nav').addEventListener('click', (e) => {
+            const navLink = e.target.closest('a');
+            if (navLink) {
+                e.preventDefault();
+                const targetId = navLink.getAttribute('href');
+                window.location.hash = targetId;
+            }
+        });
+        
+        window.addEventListener('hashchange', () => {
+            const hash = window.location.hash || '#dashboard';
+            switchTab(hash);
+        });
+
+        // --- ONBOARDING ---
+        function renderOnboarding() {
+            const stepsContainer = document.getElementById('onboarding-steps');
+            const steps = [
+                { id: 'logo', text: 'Télécharger votre logo', done: onboardingState.logo },
+                { id: 'server', text: 'Ajouter votre premier serveur', done: onboardingState.server },
+                { id: 'googleLink', text: 'Entrer votre lien d\'avis Google', done: onboardingState.googleLink },
+            ];
+
+            const allDone = Object.values(onboardingState).every(Boolean);
+            if (allDone) {
+                onboardingBanner.classList.add('hidden');
+                return;
+            }
+            onboardingBanner.classList.remove('hidden');
+
+            stepsContainer.innerHTML = steps.map(step => `
+                <div class="flex items-center text-sm">
+                    <svg class="h-5 w-5 mr-3 ${step.done ? 'text-green-500' : 'text-gray-400'}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="${step.done ? 'line-through text-gray-500' : 'text-gray-800'}">${step.text}</span>
+                </div>
+            `).join('');
+        }
+        
+        document.getElementById('logo-upload').addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('logo-preview').src = e.target.result;
+                    onboardingState.logo = true;
+                    renderOnboarding();
+                }
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+        
+        document.getElementById('google-link').addEventListener('input', (e) => {
+            if(e.target.value.includes('google.com')) {
+                 onboardingState.googleLink = true;
+                 renderOnboarding();
+            }
+        });
+
+
+        // --- CHARTS ---
+        function renderCharts() {
+            const ctx = document.getElementById('reviewsTrendChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'],
+                    datasets: [{
+                        label: 'Avis reçus',
+                        data: [65, 59, 80, 81, 56, 55, 128],
+                        borderColor: 'var(--brand-color)',
+                        backgroundColor: 'var(--brand-color-light)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        // --- MODALS & FORMS LOGIC ---
+        function openModal(modal) { modal.classList.remove('hidden'); }
+        function closeModal(modal) { modal.classList.add('hidden'); }
+
+        // Server Modal
+        addServerBtn.addEventListener('click', () => {
+            serverForm.reset();
+            document.getElementById('server-id').value = '';
+            document.getElementById('server-modal-title').textContent = 'Ajouter un serveur';
+            openModal(serverModal);
+        });
+        cancelServerModalBtn.addEventListener('click', () => closeModal(serverModal));
+        
+        serverForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('server-id').value;
+            const name = document.getElementById('server-name').value;
+            if (id) { // Edit
+                const server = servers.find(s => s.id == id);
+                server.name = name;
+            } else { // Add
+                const newId = servers.length > 0 ? Math.max(...servers.map(s => s.id)) + 1 : 1;
+                servers.push({ id: newId, name, reviews: 0 });
+            }
+            onboardingState.server = true;
+            renderServers();
+            renderOnboarding();
+            closeModal(serverModal);
+        });
+        
+        // Dish Modal
+        addDishBtn.addEventListener('click', () => {
+            dishForm.reset();
+            document.getElementById('dish-id').value = '';
+            document.getElementById('dish-modal-title').textContent = 'Ajouter un plat';
+            populateDishCategoryOptions();
+            openModal(dishModal);
+        });
+        cancelDishModalBtn.addEventListener('click', () => closeModal(dishModal));
+
+        dishForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = document.getElementById('dish-id').value;
+            const name = document.getElementById('dish-name').value;
+            const category = document.getElementById('dish-category').value;
+            
+            if (id) { // Edit
+                 for (const cat in menu) {
+                    const dishIndex = menu[cat].findIndex(d => d.id == id);
+                    if (dishIndex !== -1) {
+                        const [dish] = menu[cat].splice(dishIndex, 1);
+                        dish.name = name;
+                        if (!menu[category]) menu[category] = [];
+                        menu[category].push(dish);
+                        break;
+                    }
+                }
+            } else { // Add
+                const newId = Math.max(0, ...Object.values(menu).flat().map(d => d.id)) + 1;
+                if (!menu[category]) menu[category] = [];
+                menu[category].push({ id: newId, name });
+            }
+            renderMenu();
+            closeModal(dishModal);
+        });
+        
+        function populateDishCategoryOptions(selectedCategory = '') {
+            const select = document.getElementById('dish-category');
+            const categories = Object.keys(menu);
+            select.innerHTML = categories.map(cat => `<option value="${cat}" ${cat === selectedCategory ? 'selected' : ''}>${cat}</option>`).join('');
+            select.innerHTML += '<option value="Nouvelle catégorie...">Nouvelle catégorie...</option>';
+        }
+        
+        document.getElementById('dish-category').addEventListener('change', function() {
+            if (this.value === 'Nouvelle catégorie...') {
+                const newCategory = prompt('Entrez le nom de la nouvelle catégorie:');
+                if (newCategory) {
+                    const option = new Option(newCategory, newCategory, true, true);
+                    this.add(option, this.options[this.options.length - 1]);
+                    menu[newCategory] = [];
+                } else {
+                    this.value = Object.keys(menu)[0];
+                }
+            }
+        });
+
+
+        // --- RENDER FUNCTIONS ---
+        function renderServers() {
+            serversList.innerHTML = servers.map(server => `
+                <tr class="border-b border-gray-200 hover:bg-gray-50">
+                    <td class="p-4">${server.name}</td>
+                    <td class="p-4">${server.reviews}</td>
+                    <td class="p-4">
+                        <button class="edit-server-btn text-blue-600 hover:underline text-sm" data-id="${server.id}">Éditer</button>
+                        <button class="delete-server-btn text-red-600 hover:underline text-sm ml-4" data-id="${server.id}">Supprimer</button>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // Re-add event listeners
+            document.querySelectorAll('.edit-server-btn').forEach(btn => btn.addEventListener('click', handleEditServer));
+            document.querySelectorAll('.delete-server-btn').forEach(btn => btn.addEventListener('click', handleDeleteServer));
+        }
+        
+        function renderMenu() {
+            menuListContainer.innerHTML = Object.entries(menu).map(([category, dishes]) => `
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 border-b pb-2 mb-3">${category}</h3>
+                    <ul class="space-y-2">
+                        ${dishes.map(dish => `
+                            <li class="flex justify-between items-center p-2 rounded-md hover:bg-gray-50">
+                                <span>${dish.name}</span>
+                                <div>
+                                    <button class="edit-dish-btn text-blue-600 hover:underline text-sm" data-id="${dish.id}">Éditer</button>
+                                    <button class="delete-dish-btn text-red-600 hover:underline text-sm ml-4" data-id="${dish.id}">Supprimer</button>
+                                </div>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `).join('');
+            
+            // Re-add event listeners
+            document.querySelectorAll('.edit-dish-btn').forEach(btn => btn.addEventListener('click', handleEditDish));
+            document.querySelectorAll('.delete-dish-btn').forEach(btn => btn.addEventListener('click', handleDeleteDish));
+        }
+
+        // --- EVENT HANDLERS for dynamic content ---
+        function handleEditServer(e) {
+            const id = e.target.dataset.id;
+            const server = servers.find(s => s.id == id);
+            document.getElementById('server-id').value = server.id;
+            document.getElementById('server-name').value = server.name;
+            document.getElementById('server-modal-title').textContent = 'Éditer le serveur';
+            openModal(serverModal);
+        }
+
+        function handleDeleteServer(e) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce serveur ?')) {
+                const id = e.target.dataset.id;
+                servers = servers.filter(s => s.id != id);
+                renderServers();
+            }
+        }
+        
+        function handleEditDish(e) {
+            const id = e.target.dataset.id;
+            let dish, category;
+            for (const cat in menu) {
+                const foundDish = menu[cat].find(d => d.id == id);
+                if (foundDish) {
+                    dish = foundDish;
+                    category = cat;
+                    break;
+                }
+            }
+            if (dish) {
+                document.getElementById('dish-id').value = dish.id;
+                document.getElementById('dish-name').value = dish.name;
+                populateDishCategoryOptions(category);
+                document.getElementById('dish-modal-title').textContent = 'Éditer le plat';
+                openModal(dishModal);
+            }
+        }
+        
+        function handleDeleteDish(e) {
+             if (confirm('Êtes-vous sûr de vouloir supprimer ce plat ?')) {
+                const id = e.target.dataset.id;
+                for (const cat in menu) {
+                    menu[cat] = menu[cat].filter(d => d.id != id);
+                }
+                renderMenu();
+            }
+        }
+
+
+        // --- INITIALIZATION ---
+        function init() {
+            const hash = window.location.hash || '#dashboard';
+            switchTab(hash);
+            renderCharts();
+            renderServers();
+            renderMenu();
+            renderOnboarding();
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>

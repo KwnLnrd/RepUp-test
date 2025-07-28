@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donnez votre avis - Le Bistrot Gourmand</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-color: #BF5B3F; /* Default color, will be overridden by JS */
+            --brand-color-light: rgba(191, 91, 63, 0.1);
+            --brand-color-dark: #A64B35;
+            --background-color: #F8F9FA;
+            --surface-color: #FFFFFF;
+            --text-primary: #212529;
+            --text-secondary: #6C757D;
+            --border-color: #DEE2E6;
+        }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .font-serif {
+            font-family: 'Cormorant Garamond', serif;
+        }
+        .main-container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-top: 2rem;
+        }
+        .step {
+            display: none;
+            animation: fadeIn 0.6s ease-out;
+        }
+        .step.active {
+            display: block;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+        .star-rating {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 2rem 0;
+        }
+        .star-rating svg {
+            width: 2.5rem;
+            height: 2.5rem;
+            color: #E0E0E0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .star-rating svg.selected, .star-rating:hover svg:hover ~ svg {
+            color: #E0E0E0;
+        }
+        .star-rating:hover svg:hover,
+        .star-rating svg.hovered {
+            color: #FFC107;
+            transform: scale(1.1);
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            text-align: center;
+            background-color: var(--brand-color);
+            color: white;
+            padding: 0.875rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+        }
+        .btn:hover {
+            background-color: var(--brand-color-dark);
+        }
+        .btn.secondary {
+            background-color: transparent;
+            color: var(--brand-color);
+            border: 1px solid var(--brand-color);
+        }
+         .btn.secondary:hover {
+            background-color: var(--brand-color-light);
+        }
+
+        .lang-btn {
+            background-color: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .lang-btn.active {
+            background-color: var(--brand-color);
+            color: white;
+            border-color: var(--brand-color);
+        }
+        .selection-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+        .selection-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .selection-item.selected {
+            border-color: var(--brand-color);
+            background-color: var(--brand-color-light);
+            box-shadow: 0 0 0 2px var(--brand-color);
+        }
+        .selection-item img {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 0.75rem;
+        }
+        .selection-item span {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="main-container" class="main-container">
+
+        <!-- Step 0: Language Selection -->
+        <div id="step-lang" class="step">
+            <h1 class="text-2xl font-bold font-serif text-center mb-6">Choose your language</h1>
+            <div id="lang-selector" class="flex flex-wrap justify-center gap-3">
+                <!-- Language buttons will be injected here -->
+            </div>
+        </div>
+
+        <!-- Step 1: Server Selection -->
+        <div id="step-server" class="step">
+            <h1 id="server-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+            <p id="server-subtitle" class="text-center text-gray-500 mb-8"></p>
+            <div id="server-grid" class="selection-grid">
+                <!-- Server items will be injected here -->
+            </div>
+        </div>
+
+        <!-- Step 2: Rating -->
+        <div id="step-rating" class="step">
+            <h1 id="rating-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+            <p id="rating-subtitle" class="text-center text-gray-500 mb-6"></p>
+            <div id="star-rating" class="star-rating">
+                <!-- Stars will be injected here -->
+            </div>
+            <p id="rating-feedback" class="text-center font-semibold text-xl" style="min-height: 28px;"></p>
+        </div>
+        
+        <!-- Step 3: Positive Feedback -->
+        <div id="step-positive-feedback" class="step">
+            <h1 id="positive-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+            <p id="positive-subtitle" class="text-center text-gray-500 mb-8"></p>
+            <div id="positive-buttons" class="space-y-4">
+                <!-- Positive feedback buttons will be injected here -->
+            </div>
+        </div>
+
+        <!-- Step 4: Negative Feedback -->
+        <div id="step-negative-feedback" class="step">
+            <h1 id="negative-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+            <p id="negative-subtitle" class="text-center text-gray-500 mb-8"></p>
+            <form id="internal-feedback-form">
+                <textarea id="feedback-textarea" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)]" required></textarea>
+                <button id="submit-feedback-btn" type="submit" class="btn mt-4"></button>
+            </form>
+        </div>
+        
+        <!-- Step 5: Thank You -->
+        <div id="step-thank-you" class="step text-center">
+             <svg class="w-16 h-16 mx-auto text-green-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <h1 id="thank-you-title" class="text-2xl font-bold font-serif mb-2"></h1>
+            <p id="thank-you-subtitle" class="text-gray-500"></p>
+        </div>
+
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+
+        // --- MOCK RESTAURANT DATA ---
+        // In a real app, this would be fetched from your backend based on the URL
+        const restaurantData = {
+            name: "Le Bistrot Gourmand",
+            logoUrl: "https://placehold.co/200x50/BF5B3F/FFFFFF?text=Le+Bistrot+Gourmand",
+            primaryColor: "#BF5B3F",
+            links: {
+                google: "https://search.google.com/local/writereview?placeid=ChIJIdvGkX5v5kcRQ1FTWUnyJxo",
+                tripadvisor: "https://www.tripadvisor.fr/UserReview-g187147-d1234567-Le_Bistrot_Gourmand-Paris_Ile_de_France.html"
+            },
+            servers: [
+                { id: 1, name: 'Clara', avatar: 'https://placehold.co/128x128/f8b4b4/FFFFFF?text=C' },
+                { id: 2, name: 'Julien', avatar: 'https://placehold.co/128x128/b4d8f8/FFFFFF?text=J' },
+                { id: 3, name: 'Amina', avatar: 'https://placehold.co/128x128/f8f8b4/FFFFFF?text=A' },
+                { id: 4, name: 'Lucas', avatar: 'https://placehold.co/128x128/b4f8b4/FFFFFF?text=L' },
+            ],
+            languages: ['fr', 'en', 'es']
+        };
+
+        const translations = {
+            fr: {
+                server_title: "Qui a enchanté votre service ?",
+                server_subtitle: "Sélectionnez la personne qui s'est occupée de vous.",
+                rating_title: (server) => `Comment évalueriez-vous le service de <strong>${server}</strong> ?`,
+                rating_subtitle: "Votre note nous est précieuse.",
+                rating_feedback: ["Terrible", "Moyen", "Bien", "Très bien", "Excellent !"],
+                positive_title: "Merci infiniment !",
+                positive_subtitle: "Votre avis est essentiel. Aidez d'autres gourmands en le partageant sur une plateforme publique.",
+                publish_on: (platform) => `Publier sur ${platform}`,
+                negative_title: "Nous sommes désolés",
+                negative_subtitle: "Votre expérience n'a pas été à la hauteur. Laissez-nous un message privé pour que nous puissions nous améliorer.",
+                feedback_placeholder: "Dites-nous tout...",
+                submit_feedback: "Envoyer mon retour",
+                thank_you_title: "Merci pour votre retour !",
+                thank_you_subtitle: "Nous avons bien reçu votre message. À bientôt !",
+                final_thank_you_title: "Merci !",
+                final_thank_you_subtitle: "Votre soutien est notre plus belle récompense.",
+            },
+            en: {
+                server_title: "Who provided your service?",
+                server_subtitle: "Select the person who took care of you.",
+                rating_title: (server) => `How would you rate <strong>${server}</strong>'s service?`,
+                rating_subtitle: "Your rating is valuable to us.",
+                rating_feedback: ["Terrible", "Average", "Good", "Very good", "Excellent!"],
+                positive_title: "Thank you so much!",
+                positive_subtitle: "Your opinion is essential. Help other food lovers by sharing it on a public platform.",
+                publish_on: (platform) => `Publish on ${platform}`,
+                negative_title: "We are sorry",
+                negative_subtitle: "Your experience was not up to par. Please leave us a private message so we can improve.",
+                feedback_placeholder: "Tell us everything...",
+                submit_feedback: "Send my feedback",
+                thank_you_title: "Thank you for your feedback!",
+                thank_you_subtitle: "We have received your message. See you soon!",
+                final_thank_you_title: "Thank You!",
+                final_thank_you_subtitle: "Your support is our greatest reward.",
+            },
+            es: {
+                server_title: "¿Quién le atendió?",
+                server_subtitle: "Seleccione la persona que le atendió.",
+                rating_title: (server) => `¿Cómo calificaría el servicio de <strong>${server}</strong>?`,
+                rating_subtitle: "Su calificación es muy valiosa para nosotros.",
+                rating_feedback: ["Terrible", "Regular", "Bueno", "Muy bueno", "¡Excelente!"],
+                positive_title: "¡Muchas gracias!",
+                positive_subtitle: "Su opinión es esencial. Ayude a otros gourmets compartiéndola en una plataforma pública.",
+                publish_on: (platform) => `Publicar en ${platform}`,
+                negative_title: "Lo sentimos",
+                negative_subtitle: "Su experiencia no estuvo a la altura. Déjenos un mensaje privado para que podamos mejorar.",
+                feedback_placeholder: "Cuéntenos todo...",
+                submit_feedback: "Enviar mi comentario",
+                thank_you_title: "¡Gracias por su comentario!",
+                thank_you_subtitle: "Hemos recibido su mensaje. ¡Hasta pronto!",
+                final_thank_you_title: "¡Gracias!",
+                final_thank_you_subtitle: "Su apoyo es nuestra mayor recompensa.",
+            }
+        };
+
+        // --- STATE MANAGEMENT ---
+        let currentState = {
+            step: 'lang',
+            lang: 'fr',
+            selectedServer: null,
+            rating: 0,
+        };
+
+        // --- DOM Elements ---
+        const steps = document.querySelectorAll('.step');
+        const mainContainer = document.getElementById('main-container');
+
+        // --- DYNAMIC STYLING ---
+        function applyBranding() {
+            const root = document.documentElement;
+            const color = restaurantData.primaryColor;
+            root.style.setProperty('--brand-color', color);
+            const [r, g, b] = color.match(/\w\w/g).map((c) => parseInt(c, 16));
+            root.style.setProperty('--brand-color-light', `rgba(${r}, ${g}, ${b}, 0.1)`);
+            // Simple darken effect for hover
+            const darkColor = `rgb(${Math.max(0, r-20)}, ${Math.max(0, g-20)}, ${Math.max(0, b-20)})`;
+            root.style.setProperty('--brand-color-dark', darkColor);
+            
+            document.title = `Donnez votre avis - ${restaurantData.name}`;
+            
+            const logoContainer = document.createElement('div');
+            logoContainer.className = 'text-center mb-8';
+            logoContainer.innerHTML = `<img src="${restaurantData.logoUrl}" alt="Logo de ${restaurantData.name}" class="mx-auto h-12">`;
+            mainContainer.prepend(logoContainer);
+        }
+
+        // --- TRANSLATION & CONTENT RENDERING ---
+        function getTranslation(key, ...args) {
+            const langPack = translations[currentState.lang] || translations.fr;
+            const translation = langPack[key] || key;
+            return typeof translation === 'function' ? translation(...args) : translation;
+        }
+        
+        function renderStepContent() {
+            // Language Step
+            const langSelector = document.getElementById('lang-selector');
+            langSelector.innerHTML = restaurantData.languages.map(lang => 
+                `<button class="lang-btn ${currentState.lang === lang ? 'active' : ''}" data-lang="${lang}">${lang.toUpperCase()}</button>`
+            ).join('');
+
+            // Server Step
+            document.getElementById('server-title').innerText = getTranslation('server_title');
+            document.getElementById('server-subtitle').innerText = getTranslation('server_subtitle');
+            const serverGrid = document.getElementById('server-grid');
+            serverGrid.innerHTML = restaurantData.servers.map(server => `
+                <div class="selection-item" data-server-id="${server.id}" data-server-name="${server.name}">
+                    <img src="${server.avatar}" alt="Avatar de ${server.name}">
+                    <span>${server.name}</span>
+                </div>
+            `).join('');
+
+            // Rating Step
+            const starRatingContainer = document.getElementById('star-rating');
+            starRatingContainer.innerHTML = Array(5).fill(0).map((_, i) => 
+                `<svg data-value="${i + 1}" viewBox="0 0 24 24" fill="currentColor"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>`
+            ).join('');
+
+            // Positive Feedback Step
+            const positiveButtons = document.getElementById('positive-buttons');
+            positiveButtons.innerHTML = '';
+            if (restaurantData.links.google) {
+                positiveButtons.innerHTML += `<a href="${restaurantData.links.google}" target="_blank" class="btn">${getTranslation('publish_on', 'Google')}</a>`;
+            }
+            if (restaurantData.links.tripadvisor) {
+                positiveButtons.innerHTML += `<a href="${restaurantData.links.tripadvisor}" target="_blank" class="btn secondary">${getTranslation('publish_on', 'TripAdvisor')}</a>`;
+            }
+            positiveButtons.innerHTML += `<a href="#" id="close-positive-btn" class="block text-center text-sm text-gray-500 mt-4 hover:underline">Non merci</a>`;
+
+            // Negative Feedback Step
+            document.getElementById('feedback-textarea').placeholder = getTranslation('feedback_placeholder');
+            document.getElementById('submit-feedback-btn').innerText = getTranslation('submit_feedback');
+        }
+
+        // --- NAVIGATION LOGIC ---
+        function goToStep(stepName) {
+            currentState.step = stepName;
+            steps.forEach(step => {
+                step.classList.toggle('active', step.id === `step-${stepName}`);
+            });
+            updateStepContent();
+        }
+
+        function updateStepContent() {
+            switch (currentState.step) {
+                case 'rating':
+                    document.getElementById('rating-title').innerHTML = getTranslation('rating_title', currentState.selectedServer.name);
+                    document.getElementById('rating-subtitle').innerText = getTranslation('rating_subtitle');
+                    break;
+                case 'positive-feedback':
+                    document.getElementById('positive-title').innerText = getTranslation('positive_title');
+                    document.getElementById('positive-subtitle').innerText = getTranslation('positive_subtitle');
+                    break;
+                case 'negative-feedback':
+                    document.getElementById('negative-title').innerText = getTranslation('negative_title');
+                    document.getElementById('negative-subtitle').innerText = getTranslation('negative_subtitle');
+                    break;
+                case 'thank-you':
+                     document.getElementById('thank-you-title').innerText = getTranslation('thank_you_title');
+                     document.getElementById('thank-you-subtitle').innerText = getTranslation('thank_you_subtitle');
+                    break;
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        
+        // Language Selection
+        document.getElementById('lang-selector').addEventListener('click', (e) => {
+            if (e.target.matches('.lang-btn')) {
+                currentState.lang = e.target.dataset.lang;
+                renderStepContent(); // Re-render content with new language
+                goToStep('server');
+            }
+        });
+
+        // Server Selection
+        document.getElementById('server-grid').addEventListener('click', (e) => {
+            const serverItem = e.target.closest('.selection-item');
+            if (serverItem) {
+                currentState.selectedServer = {
+                    id: serverItem.dataset.serverId,
+                    name: serverItem.dataset.serverName
+                };
+                goToStep('rating');
+            }
+        });
+
+        // Star Rating
+        const starRating = document.getElementById('star-rating');
+        const stars = starRating.querySelectorAll('svg');
+        const ratingFeedback = document.getElementById('rating-feedback');
+        
+        starRating.addEventListener('mouseover', e => {
+            if (e.target.matches('svg')) {
+                const ratingValue = parseInt(e.target.dataset.value);
+                stars.forEach((star, index) => {
+                    star.classList.toggle('hovered', index < ratingValue);
+                });
+            }
+        });
+
+        starRating.addEventListener('mouseout', () => {
+            stars.forEach(star => star.classList.remove('hovered'));
+        });
+
+        starRating.addEventListener('click', e => {
+            if (e.target.matches('svg')) {
+                currentState.rating = parseInt(e.target.dataset.value);
+                stars.forEach((star, index) => {
+                    star.classList.toggle('selected', index < currentState.rating);
+                    star.style.color = index < currentState.rating ? '#FFC107' : '#E0E0E0';
+                });
+                ratingFeedback.textContent = getTranslation('rating_feedback')[currentState.rating - 1];
+                
+                // Smart redirection logic
+                setTimeout(() => {
+                    if (currentState.rating >= 4) {
+                        goToStep('positive-feedback');
+                    } else {
+                        goToStep('negative-feedback');
+                    }
+                }, 800);
+            }
+        });
+        
+        // Positive Feedback close
+        document.getElementById('positive-buttons').addEventListener('click', e => {
+            if (e.target.id === 'close-positive-btn') {
+                e.preventDefault();
+                document.getElementById('thank-you-title').innerText = getTranslation('final_thank_you_title');
+                document.getElementById('thank-you-subtitle').innerText = getTranslation('final_thank_you_subtitle');
+                goToStep('thank-you');
+            }
+        });
+
+        // Negative Feedback Form
+        document.getElementById('internal-feedback-form').addEventListener('submit', e => {
+            e.preventDefault();
+            const feedbackText = document.getElementById('feedback-textarea').value;
+            console.log("Internal feedback submitted:", {
+                server: currentState.selectedServer.name,
+                rating: currentState.rating,
+                feedback: feedbackText
+            });
+            // Here you would POST this data to your backend
+            goToStep('thank-you');
+        });
+
+
+        // --- INITIALIZATION ---
+        function init() {
+            applyBranding();
+            renderStepContent();
+            // Start at language selection if more than one language, else start at server selection
+            if (restaurantData.languages.length > 1) {
+                 goToStep('lang');
+            } else {
+                 goToStep('server');
+            }
+        }
+
+        init();
+    });
+    </script>
+</body>
+</html>
