@@ -31,6 +31,10 @@
         .content-section.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="antialiased">
@@ -45,7 +49,7 @@
                     <h2 class="text-xl font-semibold mb-4">Connexion</h2>
                     <input type="email" id="login-email" placeholder="Email" class="w-full p-3 border rounded mb-3" required>
                     <input type="password" id="login-password" placeholder="Mot de passe" class="w-full p-3 border rounded mb-4" required>
-                    <button type="submit" class="w-full bg-brand-color text-white py-3 rounded font-semibold hover:bg-brand-color-dark">Se connecter</button>
+                    <button type="submit" id="login-button" class="w-full bg-brand-color text-white py-3 rounded font-semibold hover:bg-brand-color-dark transition-colors">Se connecter</button>
                     <p id="login-error" class="text-red-500 text-sm mt-2 h-4"></p>
                 </form>
                 <p class="text-gray-500 my-4">ou</p>
@@ -55,7 +59,7 @@
                     <input type="text" id="register-resto-name" placeholder="Nom de votre restaurant" class="w-full p-3 border rounded mb-3" required>
                     <input type="email" id="register-email" placeholder="Email" class="w-full p-3 border rounded mb-3" required>
                     <input type="password" id="register-password" placeholder="Mot de passe" class="w-full p-3 border rounded mb-4" required>
-                    <button type="submit" class="w-full bg-gray-700 text-white py-3 rounded font-semibold hover:bg-gray-800">S'inscrire</button>
+                    <button type="submit" id="register-button" class="w-full bg-gray-700 text-white py-3 rounded font-semibold hover:bg-gray-800 transition-colors">S'inscrire</button>
                     <p id="register-error" class="text-red-500 text-sm mt-2 h-4"></p>
                 </form>
             </div>
@@ -121,7 +125,8 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const API_BASE_URL = 'https://repup-test.onrender.com'; // IMPORTANT: URL has been updated
+        // L'URL de votre backend déployé sur Render
+        const API_BASE_URL = 'https://repup-test.onrender.com';
 
         const authOverlay = document.getElementById('auth-overlay');
         const mainApp = document.getElementById('main-app');
@@ -157,6 +162,12 @@
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const button = document.getElementById('login-button');
+            const errorP = document.getElementById('login-error');
+            errorP.textContent = '';
+            button.disabled = true;
+            button.textContent = 'Connexion...';
+            
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             try {
@@ -167,12 +178,21 @@
                 localStorage.setItem('jwt_token', data.access_token);
                 initializeApp();
             } catch (error) {
-                document.getElementById('login-error').textContent = error.message;
+                errorP.textContent = error.message;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Se connecter';
             }
         });
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const button = document.getElementById('register-button');
+            const errorP = document.getElementById('register-error');
+            errorP.textContent = '';
+            button.disabled = true;
+            button.textContent = 'Inscription...';
+
             const restaurant_name = document.getElementById('register-resto-name').value;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
@@ -181,11 +201,14 @@
                     method: 'POST',
                     body: JSON.stringify({ restaurant_name, email, password })
                 });
-                alert(data.message);
+                alert(data.message + " Vous pouvez maintenant vous connecter.");
                 loginForm.reset();
                 registerForm.reset();
             } catch (error) {
-                document.getElementById('register-error').textContent = error.message;
+                errorP.textContent = error.message;
+            } finally {
+                button.disabled = false;
+                button.textContent = "S'inscrire";
             }
         });
 
