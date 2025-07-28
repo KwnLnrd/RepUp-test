@@ -28,23 +28,27 @@ CORS(app,
      allow_headers=["Authorization", "Content-Type"]
 )
 
-# --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT ---
+# --- CONFIGURATION DE LA BASE DE DONNÉES ET JWT (CORRIGÉE) ---
 database_url = os.getenv('DATABASE_URL')
 if not database_url:
     raise RuntimeError("DATABASE_URL is not set.")
+# The new 'psycopg' library requires the URL scheme to be 'postgresql+psycopg'
 if database_url.startswith("postgres://"):
-    database_url = database_url.replace("postgres://", "postgresql://", 1)
+    database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
+elif database_url.startswith("postgresql://"):
+     database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "une-cle-vraiment-secrete-et-longue-pour-la-prod")
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_HEADER_NAME"] = "Authorization"
-app.config["JWT_HEADER_TYPE"] = "Bearer" # Explicitly set the expected header type
+app.config["JWT_HEADER_TYPE"] = "Bearer"
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
 
-# --- JWT ERROR HANDLERS (ADDED FOR BETTER DEBUGGING) ---
+# --- JWT ERROR HANDLERS ---
 @jwt.invalid_token_loader
 def invalid_token_callback(error):
     app.logger.error(f"Invalid token error: {error}")
