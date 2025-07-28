@@ -38,10 +38,11 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "une-cle-vraiment-secrete-et-longue-pour-la-prod")
 
-# --- EXPLICITLY DISABLE JWT CSRF ---
-# The logs show a CSRF token in the JWT, which is unexpected.
-# This explicitly disables all CSRF features of Flask-JWT-Extended to prevent potential conflicts.
-app.config["JWT_CSRF_PROTECTION"] = False
+# --- FINAL FIX: EXPLICITLY SET TOKEN LOCATION ---
+# This forces Flask-JWT-Extended to look for the JWT in the Authorization header,
+# which is where we know it is. This resolves the conflict.
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_CSRF_PROTECTION"] = False # Explicitly disable CSRF for safety
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
