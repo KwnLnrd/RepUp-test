@@ -138,8 +138,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // L'URL de votre backend déployé sur Render ou en local
-        const API_BASE_URL = 'https://repup-test.onrender.com'; // Mettez votre URL de backend ici
+        const API_BASE_URL = 'https://repup-test.onrender.com';
 
         const authOverlay = document.getElementById('auth-overlay');
         const mainApp = document.getElementById('main-app');
@@ -147,8 +146,6 @@
         const registerForm = document.getElementById('register-form');
         const logoutBtn = document.getElementById('logout-btn');
         const contentArea = document.getElementById('content-area');
-
-        // --- AUTHENTICATION ---
 
         async function fetchPublic(url, options = {}) {
             const headers = { 'Content-Type': 'application/json', ...options.headers };
@@ -158,55 +155,39 @@
                 try {
                     const errorData = await response.json();
                     errorMsg = errorData.error || errorData.message || errorMsg;
-                } catch (e) {
-                    console.error("Could not parse error response as JSON.", e);
-                }
+                } catch (e) { console.error("Could not parse error response as JSON.", e); }
                 throw new Error(errorMsg);
             }
             return response.json();
         }
 
-        // --- FETCH WITH AUTH (CORRECTED AND ROBUST VERSION) ---
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
-
             if (!token) {
-                logout(); 
+                logout();
                 throw new Error('Token d\'authentification manquant. Reconnexion nécessaire.');
             }
-
-            const headers = {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-                ...options.headers
-            };
-            
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers };
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
-
             if (response.status === 401 || response.status === 422) {
                 logout();
                 const errorText = response.status === 401 ? 'Token invalide ou expiré.' : 'Requête invalide (token manquant?).';
                 throw new Error(`Session expirée. ${errorText} Veuillez vous reconnecter.`);
             }
-            
             if (!response.ok) {
                 let errorMsg = `Erreur du serveur (code: ${response.status})`;
                 try {
                     const errorData = await response.json();
                     errorMsg = errorData.error || errorData.message || errorMsg;
-                } catch (e) {
-                    // Ignore if the error response is not JSON
-                }
+                } catch (e) {}
                 throw new Error(errorMsg);
             }
-
             if (response.headers.get('Content-Length') === '0' || response.status === 204) {
                 return null;
             }
-            
             return response.json();
         }
-        
+
         function logout() {
             localStorage.removeItem('jwt_token');
             mainApp.classList.add('hidden');
@@ -228,7 +209,6 @@
             errorP.textContent = '';
             button.disabled = true;
             button.textContent = 'Connexion...';
-            
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             try {
@@ -257,7 +237,6 @@
             errorP.textContent = '';
             button.disabled = true;
             button.textContent = 'Inscription...';
-
             const restaurant_name = document.getElementById('register-resto-name').value;
             const email = document.getElementById('register-email').value;
             const password = document.getElementById('register-password').value;
@@ -277,7 +256,6 @@
             }
         });
 
-        // --- NAVIGATION ---
         function switchTab(hash) {
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.toggle('active', item.getAttribute('href') === hash);
@@ -297,247 +275,66 @@
             }
         });
 
-        // --- RENDER FUNCTIONS ---
         async function renderDashboard() {
             const section = document.getElementById('dashboard');
             if (!section) return;
-            section.innerHTML = `
-                <h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div class="card"><h3 class="text-sm font-semibold text-gray-500">Avis (30j)</h3><p class="text-3xl font-bold mt-1">128</p></div>
-                    <div class="card"><h3 class="text-sm font-semibold text-gray-500">Note moyenne</h3><p class="text-3xl font-bold mt-1">4.8 <span class="text-yellow-400">★</span></p></div>
-                    <div class="card"><h3 class="text-sm font-semibold text-gray-500">Serveur du mois</h3><p class="text-3xl font-bold mt-1">Clara</p></div>
-                    <div class="card"><h3 class="text-sm font-semibold text-gray-500">Feedbacks privés</h3><p class="text-3xl font-bold mt-1">3</p></div>
-                </div>
-                 <div class="card">
-                    <h2 class="text-2xl font-bold font-serif mb-4">Tendance des avis</h2>
-                    <div class="h-80"><canvas id="reviewsTrendChart"></canvas></div>
-                </div>
-            `;
+            section.innerHTML = `<h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1><div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"><div class="card"><h3 class="text-sm font-semibold text-gray-500">Avis (30j)</h3><p class="text-3xl font-bold mt-1">128</p></div><div class="card"><h3 class="text-sm font-semibold text-gray-500">Note moyenne</h3><p class="text-3xl font-bold mt-1">4.8 <span class="text-yellow-400">★</span></p></div><div class="card"><h3 class="text-sm font-semibold text-gray-500">Serveur du mois</h3><p class="text-3xl font-bold mt-1">Clara</p></div><div class="card"><h3 class="text-sm font-semibold text-gray-500">Feedbacks privés</h3><p class="text-3xl font-bold mt-1">3</p></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Tendance des avis</h2><div class="h-80"><canvas id="reviewsTrendChart"></canvas></div></div>`;
             const ctx = document.getElementById('reviewsTrendChart').getContext('2d');
             new Chart(ctx, { type: 'line', data: { labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'], datasets: [{ label: 'Avis reçus', data: [65, 59, 80, 81, 56, 55, 128], borderColor: 'var(--brand-color)', backgroundColor: 'var(--brand-color-light)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
         }
-        
+
         async function renderPageSettings() {
             const section = document.getElementById('page-settings');
             if (!section) return;
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
-            try {
-                const settings = await fetchWithAuth('/api/restaurant');
-                const availableLangs = { 'fr': 'Français', 'en': 'English', 'es': 'Español', 'it': 'Italiano' };
-                
-                const enabledLanguages = Array.isArray(settings.enabledLanguages) ? settings.enabledLanguages : [];
-
-                section.innerHTML = `
-                    <h1 class="text-4xl font-bold font-serif mb-8">Gestion de la Page de Collecte d'Avis</h1>
-                    <form id="page-settings-form">
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            <!-- Colonne 1 & 2: Paramètres -->
-                            <div class="lg:col-span-2 space-y-8">
-                                <div class="card">
-                                    <h2 class="text-2xl font-bold font-serif mb-4">Personnalisation Visuelle</h2>
-                                    <div class="space-y-6">
-                                        <div class="flex items-center gap-6">
-                                            <img id="logo-preview" src="${settings.logoUrl || 'https://placehold.co/100x100/DEE2E6/6C757D?text=Logo'}" alt="Aperçu du logo" class="w-24 h-24 rounded-lg object-contain bg-gray-100 p-1">
-                                            <div class="flex-1">
-                                                <label for="logo-url" class="block text-sm font-medium text-gray-700">URL du logo</label>
-                                                <input type="url" id="logo-url" value="${settings.logoUrl || ''}" class="form-input">
-                                                <p class="text-xs text-gray-500 mt-1">L'aperçu se met à jour lorsque vous quittez le champ.</p>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label>
-                                            <input type="color" id="primary-color" value="${settings.primaryColor || '#BF5B3F'}" class="mt-1 h-10 w-20 rounded-md border-gray-300 p-1">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <h2 class="text-2xl font-bold font-serif mb-4">Liens de Notation</h2>
-                                    <div class="space-y-4">
-                                        <div>
-                                            <label for="google-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis Google</label>
-                                            <input type="url" id="google-link" value="${settings.googleLink || ''}" class="form-input" placeholder="https://search.google.com/local/writereview?placeid=...">
-                                        </div>
-                                        <div>
-                                            <label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis TripAdvisor</label>
-                                            <input type="url" id="tripadvisor-link" value="${settings.tripadvisorLink || ''}" class="form-input" placeholder="https://www.tripadvisor.com/UserReview-g...-d...">
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="card">
-                                    <h2 class="text-2xl font-bold font-serif mb-4">Langues</h2>
-                                    <p class="text-sm text-gray-600 mb-4">Sélectionnez les langues à proposer sur votre page de collecte d'avis.</p>
-                                    <div id="languages-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                        ${Object.entries(availableLangs).map(([code, name]) => `
-                                            <label class="flex items-center space-x-3 cursor-pointer">
-                                                <input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${enabledLanguages.includes(code) ? 'checked' : ''}>
-                                                <span class="text-gray-700">${name}</span>
-                                            </label>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Colonne 3: QR Code -->
-                            <div class="lg:col-span-1">
-                                <div class="card sticky top-8" id="qr-code-card">
-                                    <!-- Le contenu du QR Code sera injecté ici par JS -->
-                                </div>
-                            </div>
-                        </div>
-                        <div class="mt-8 text-right bg-white p-4 rounded-lg shadow-md sticky bottom-0">
-                            <button type="submit" class="bg-brand-color text-white px-8 py-3 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-lg">Enregistrer les modifications</button>
-                        </div>
-                    </form>
-                `;
-                
-                const qrCard = document.getElementById('qr-code-card');
-                const slug = settings.slug;
-
-                if (!slug) {
-                    qrCard.innerHTML = `
-                        <h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2>
-                        <div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center">
-                            <p class="font-bold">Erreur de configuration</p>
-                            <p class="text-sm mt-1">Le "slug" du restaurant est manquant. Le QR Code ne peut pas être généré. Veuillez contacter le support.</p>
-                        </div>`;
-                } else {
-                    qrCard.innerHTML = `
-                        <h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2>
-                        <p class="text-sm text-gray-600 mb-4">Vos clients scannent ce code pour laisser un avis. Imprimez-le sur vos menus, tables ou additions.</p>
-                        <div class="flex justify-center items-center bg-gray-50 p-4 rounded-lg">
-                            <div id="qrcode-container" class="p-2 bg-white rounded-md shadow-inner"></div>
-                        </div>
-                        <a id="download-qr-btn" href="#" class="mt-4 block w-full text-center bg-gray-800 text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-900 transition-colors">Télécharger le QR Code</a>
-                        <div class="mt-4">
-                            <label class="text-sm font-medium text-gray-700">Votre lien direct :</label>
-                            <input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier">
-                        </div>`;
-                    
-                    const reviewPageUrl = `${window.location.origin.replace('saas_admin_panel.html', '')}saas_review_collection_page.html?slug=${slug}`;
-                    document.getElementById('review-page-link').value = reviewPageUrl;
-                    
-                    const qrcodeContainer = document.getElementById('qrcode-container');
-                    new QRCode(qrcodeContainer, {
-                        text: reviewPageUrl,
-                        width: 200,
-                        height: 200,
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.H
-                    });
-
-                    document.getElementById('download-qr-btn').addEventListener('click', (e) => {
-                        e.preventDefault();
-                        const canvas = qrcodeContainer.querySelector('canvas');
-                        if (canvas) {
-                            const link = document.createElement('a');
-                            link.download = `qrcode-${slug}.png`;
-                            link.href = canvas.toDataURL('image/png');
-                            link.click();
-                        }
-                    });
-
-                    document.getElementById('review-page-link').addEventListener('click', () => {
-                        const input = document.getElementById('review-page-link');
-                        input.select();
-                        document.execCommand('copy');
-                        alert('Lien copié !');
-                    });
-                }
-
-                document.getElementById('logo-url').addEventListener('blur', (e) => {
-                    const preview = document.getElementById('logo-preview');
-                    if (e.target.value) {
-                        preview.src = e.target.value;
-                    }
-                });
-
-                document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
-
-            } catch (error) {
-                let userFriendlyMessage = error.message;
-                section.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Erreur lors du chargement des paramètres :</p><p class="text-gray-600 mt-2">${userFriendlyMessage}</p></div>`;
+            const settings = await fetchWithAuth('/api/restaurant');
+            const availableLangs = { 'fr': 'Français', 'en': 'English', 'es': 'Español', 'it': 'Italiano' };
+            const enabledLanguages = Array.isArray(settings.enabledLanguages) ? settings.enabledLanguages : [];
+            section.innerHTML = `<h1 class="text-4xl font-bold font-serif mb-8">Gestion de la Page de Collecte d'Avis</h1><form id="page-settings-form"><div class="grid grid-cols-1 lg:grid-cols-3 gap-8"><div class="lg:col-span-2 space-y-8"><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Personnalisation Visuelle</h2><div class="space-y-6"><div class="flex items-center gap-6"><img id="logo-preview" src="${settings.logoUrl || 'https://placehold.co/100x100/DEE2E6/6C757D?text=Logo'}" alt="Aperçu du logo" class="w-24 h-24 rounded-lg object-contain bg-gray-100 p-1"><div class="flex-1"><label for="logo-url" class="block text-sm font-medium text-gray-700">URL du logo</label><input type="url" id="logo-url" value="${settings.logoUrl || ''}" class="form-input"><p class="text-xs text-gray-500 mt-1">L'aperçu se met à jour lorsque vous quittez le champ.</p></div></div><div><label for="primary-color" class="block text-sm font-medium text-gray-700">Couleur principale</label><input type="color" id="primary-color" value="${settings.primaryColor || '#BF5B3F'}" class="mt-1 h-10 w-20 rounded-md border-gray-300 p-1"></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Liens de Notation</h2><div class="space-y-4"><div><label for="google-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis Google</label><input type="url" id="google-link" value="${settings.googleLink || ''}" class="form-input" placeholder="https://search.google.com/local/writereview?placeid=..."></div><div><label for="tripadvisor-link" class="block text-sm font-medium text-gray-700">Lien direct pour laisser un avis TripAdvisor</label><input type="url" id="tripadvisor-link" value="${settings.tripadvisorLink || ''}" class="form-input" placeholder="https://www.tripadvisor.com/UserReview-g...-d..."></div></div></div><div class="card"><h2 class="text-2xl font-bold font-serif mb-4">Langues</h2><p class="text-sm text-gray-600 mb-4">Sélectionnez les langues à proposer sur votre page de collecte d'avis.</p><div id="languages-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">${Object.entries(availableLangs).map(([code, name]) => `<label class="flex items-center space-x-3 cursor-pointer"><input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${enabledLanguages.includes(code) ? 'checked' : ''}><span class="text-gray-700">${name}</span></label>`).join('')}</div></div></div><div class="lg:col-span-1"><div class="card sticky top-8" id="qr-code-card"></div></div></div><div class="mt-8 text-right bg-white p-4 rounded-lg shadow-md sticky bottom-0"><button type="submit" class="bg-brand-color text-white px-8 py-3 rounded-full font-semibold hover:bg-brand-color-dark transition-colors text-lg">Enregistrer les modifications</button></div></form>`;
+            const qrCard = document.getElementById('qr-code-card');
+            const slug = settings.slug;
+            if (!slug) {
+                qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><div class="bg-red-50 border border-red-200 text-red-800 p-4 rounded-lg text-center"><p class="font-bold">Erreur de configuration</p><p class="text-sm mt-1">Le "slug" du restaurant est manquant. Le QR Code ne peut pas être généré. Veuillez contacter le support.</p></div>`;
+            } else {
+                qrCard.innerHTML = `<h2 class="text-2xl font-bold font-serif mb-2">Votre QR Code</h2><p class="text-sm text-gray-600 mb-4">Vos clients scannent ce code pour laisser un avis. Imprimez-le sur vos menus, tables ou additions.</p><div class="flex justify-center items-center bg-gray-50 p-4 rounded-lg"><div id="qrcode-container" class="p-2 bg-white rounded-md shadow-inner"></div></div><a id="download-qr-btn" href="#" class="mt-4 block w-full text-center bg-gray-800 text-white px-4 py-2 rounded-full font-semibold hover:bg-gray-900 transition-colors">Télécharger le QR Code</a><div class="mt-4"><label class="text-sm font-medium text-gray-700">Votre lien direct :</label><input type="text" id="review-page-link" readonly class="form-input bg-gray-100 mt-1 cursor-pointer" title="Cliquez pour copier"></div>`;
+                const reviewPageUrl = `${window.location.origin.replace('saas_admin_panel.html', '')}saas_review_collection_page.html?slug=${slug}`;
+                document.getElementById('review-page-link').value = reviewPageUrl;
+                const qrcodeContainer = document.getElementById('qrcode-container');
+                new QRCode(qrcodeContainer, { text: reviewPageUrl, width: 200, height: 200, colorDark: "#000000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H });
+                document.getElementById('download-qr-btn').addEventListener('click', (e) => { e.preventDefault(); const canvas = qrcodeContainer.querySelector('canvas'); if (canvas) { const link = document.createElement('a'); link.download = `qrcode-${slug}.png`; link.href = canvas.toDataURL('image/png'); link.click(); } });
+                document.getElementById('review-page-link').addEventListener('click', () => { const input = document.getElementById('review-page-link'); input.select(); document.execCommand('copy'); alert('Lien copié !'); });
             }
+            document.getElementById('logo-url').addEventListener('blur', (e) => { const preview = document.getElementById('logo-preview'); if (e.target.value) { preview.src = e.target.value; } });
+            document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
         }
-
 
         async function renderTeamManagement() {
             const section = document.getElementById('team-management');
             if (!section) return;
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
-            try {
-                const servers = await fetchWithAuth('/api/servers');
-                section.innerHTML = `
-                    <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-4xl font-bold font-serif">Gestion des équipes</h1>
-                        <button id="add-server-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un serveur</button>
-                    </div>
-                    <div class="card">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50"><tr><th class="p-4 font-semibold">Nom</th><th class="p-4 font-semibold text-right">Actions</th></tr></thead>
-                            <tbody id="servers-list">
-                                ${servers.length > 0 ? servers.map(s => `
-                                    <tr class="border-b last:border-b-0">
-                                        <td class="p-4">${s.name}</td>
-                                        <td class="p-4 text-right"><button class="delete-server-btn text-red-500 hover:text-red-700 font-medium" data-id="${s.id}">Supprimer</button></td>
-                                    </tr>`).join('') : '<tr><td colspan="2" class="p-4 text-center text-gray-500">Aucun serveur ajouté.</td></tr>'}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-                document.getElementById('add-server-btn').addEventListener('click', handleAddServer);
-                document.querySelectorAll('.delete-server-btn').forEach(b => b.addEventListener('click', handleDeleteServer));
-            } catch(error) {
-                 section.innerHTML = `<div class="text-center p-10 text-red-500">Erreur: ${error.message}</div>`;
-            }
+            const servers = await fetchWithAuth('/api/servers');
+            section.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-4xl font-bold font-serif">Gestion des équipes</h1><button id="add-server-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un serveur</button></div><div class="card"><table class="w-full text-left"><thead class="bg-gray-50"><tr><th class="p-4 font-semibold">Nom</th><th class="p-4 font-semibold text-right">Actions</th></tr></thead><tbody id="servers-list">${servers.length > 0 ? servers.map(s => `<tr class="border-b last:border-b-0"><td class="p-4">${s.name}</td><td class="p-4 text-right"><button class="delete-server-btn text-red-500 hover:text-red-700 font-medium" data-id="${s.id}">Supprimer</button></td></tr>`).join('') : '<tr><td colspan="2" class="p-4 text-center text-gray-500">Aucun serveur ajouté.</td></tr>'}</tbody></table></div>`;
+            document.getElementById('add-server-btn').addEventListener('click', handleAddServer);
+            document.querySelectorAll('.delete-server-btn').forEach(b => b.addEventListener('click', handleDeleteServer));
         }
 
         async function renderMenuManagement() {
-             const section = document.getElementById('menu-management');
-             if (!section) return;
-             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
-             try {
-                const menu = await fetchWithAuth('/api/menu');
-                section.innerHTML = `
-                    <div class="flex justify-between items-center mb-6">
-                        <h1 class="text-4xl font-bold font-serif">Gestion du menu</h1>
-                        <button id="add-dish-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un plat</button>
-                    </div>
-                    <div id="menu-list" class="card">
-                        ${Object.keys(menu).length === 0 ? '<p class="text-center text-gray-500">Aucun plat ajouté.</p>' :
-                        Object.entries(menu).map(([category, dishes]) => `
-                            <div class="mb-6 last:mb-0">
-                                <h3 class="text-xl font-bold font-serif border-b pb-2 mb-3">${category}</h3>
-                                <ul class="space-y-2">
-                                    ${dishes.map(d => `<li class="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md"><span>${d.name}</span><button class="delete-dish-btn text-red-500 hover:text-red-700 font-medium" data-id="${d.id}">Supprimer</button></li>`).join('')}
-                                </ul>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-                document.getElementById('add-dish-btn').addEventListener('click', handleAddDish);
-                document.querySelectorAll('.delete-dish-btn').forEach(b => b.addEventListener('click', handleDeleteDish));
-             } catch (error) {
-                section.innerHTML = `<div class="text-center p-10 text-red-500">Erreur: ${error.message}</div>`;
-             }
+            const section = document.getElementById('menu-management');
+            if (!section) return;
+            section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
+            const menu = await fetchWithAuth('/api/menu');
+            section.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-4xl font-bold font-serif">Gestion du menu</h1><button id="add-dish-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un plat</button></div><div id="menu-list" class="card">${Object.keys(menu).length === 0 ? '<p class="text-center text-gray-500">Aucun plat ajouté.</p>' : Object.entries(menu).map(([category, dishes]) => `<div class="mb-6 last:mb-0"><h3 class="text-xl font-bold font-serif border-b pb-2 mb-3">${category}</h3><ul class="space-y-2">${dishes.map(d => `<li class="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md"><span>${d.name}</span><button class="delete-dish-btn text-red-500 hover:text-red-700 font-medium" data-id="${d.id}">Supprimer</button></li>`).join('')}</ul></div>`).join('')}</div>`;
+            document.getElementById('add-dish-btn').addEventListener('click', handleAddDish);
+            document.querySelectorAll('.delete-dish-btn').forEach(b => b.addEventListener('click', handleDeleteDish));
         }
 
-        // --- HANDLERS for CRUD operations ---
         async function handleSaveSettings(e) {
             e.preventDefault();
             const button = e.target.querySelector('button[type="submit"]');
             button.disabled = true;
             button.textContent = 'Enregistrement...';
-
             const selectedLangs = Array.from(document.querySelectorAll('input[name="languages"]:checked')).map(cb => cb.value);
-
-            const data = {
-                logoUrl: document.getElementById('logo-url').value,
-                primaryColor: document.getElementById('primary-color').value,
-                googleLink: document.getElementById('google-link').value,
-                tripadvisorLink: document.getElementById('tripadvisor-link').value,
-                enabledLanguages: selectedLangs
-            };
+            const data = { logoUrl: document.getElementById('logo-url').value, primaryColor: document.getElementById('primary-color').value, googleLink: document.getElementById('google-link').value, tripadvisorLink: document.getElementById('tripadvisor-link').value, enabledLanguages: selectedLangs };
             try {
                 await fetchWithAuth('/api/restaurant', { method: 'PUT', body: JSON.stringify(data) });
                 alert('Paramètres enregistrés !');
@@ -548,67 +345,37 @@
                 button.textContent = 'Enregistrer les modifications';
             }
         }
-        
-        async function handleAddServer() {
-            const name = prompt("Nom du nouveau serveur :");
-            if (name && name.trim()) {
-                await fetchWithAuth('/api/servers', { method: 'POST', body: JSON.stringify({ name: name.trim() }) });
-                renderTeamManagement();
-            }
-        }
-        async function handleDeleteServer(e) {
-            const id = e.target.dataset.id;
-            if (confirm("Supprimer ce serveur ?")) {
-                await fetchWithAuth(`/api/servers/${id}`, { method: 'DELETE' });
-                renderTeamManagement();
-            }
-        }
-        async function handleAddDish() {
-            const name = prompt("Nom du nouveau plat :");
-            if (!name || !name.trim()) return;
-            const category = prompt("Catégorie du plat (ex: Entrées, Plats...):");
-            if (name && category && name.trim() && category.trim()) {
-                await fetchWithAuth('/api/dishes', { method: 'POST', body: JSON.stringify({ name: name.trim(), category: category.trim() }) });
-                renderMenuManagement();
-            }
-        }
-        async function handleDeleteDish(e) {
-            const id = e.target.dataset.id;
-            if (confirm("Supprimer ce plat ?")) {
-                await fetchWithAuth(`/api/dishes/${id}`, { method: 'DELETE' });
-                renderMenuManagement();
-            }
-        }
 
-        // --- APP INITIALIZATION (RESTRUCTURED) ---
-        
+        async function handleAddServer() { const name = prompt("Nom du nouveau serveur :"); if (name && name.trim()) { await fetchWithAuth('/api/servers', { method: 'POST', body: JSON.stringify({ name: name.trim() }) }); renderTeamManagement(); } }
+        async function handleDeleteServer(e) { const id = e.target.dataset.id; if (confirm("Supprimer ce serveur ?")) { await fetchWithAuth(`/api/servers/${id}`, { method: 'DELETE' }); renderTeamManagement(); } }
+        async function handleAddDish() { const name = prompt("Nom du nouveau plat :"); if (!name || !name.trim()) return; const category = prompt("Catégorie du plat (ex: Entrées, Plats...):"); if (name && category && name.trim() && category.trim()) { await fetchWithAuth('/api/dishes', { method: 'POST', body: JSON.stringify({ name: name.trim(), category: category.trim() }) }); renderMenuManagement(); } }
+        async function handleDeleteDish(e) { const id = e.target.dataset.id; if (confirm("Supprimer ce plat ?")) { await fetchWithAuth(`/api/dishes/${id}`, { method: 'DELETE' }); renderMenuManagement(); } }
+
+        // --- APP INITIALIZATION (RESTRUCTURED FOR SEQUENTIAL LOADING) ---
         async function loadAppData() {
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
             
             try {
-                // Fetch all data in parallel after login
-                await Promise.all([
-                    renderDashboard(),
-                    renderPageSettings(),
-                    renderTeamManagement(),
-                    renderMenuManagement()
-                ]);
+                // Load data sequentially to avoid race conditions
+                await renderDashboard();
+                await renderPageSettings();
+                await renderTeamManagement();
+                await renderMenuManagement();
                 
-                // Switch to the correct tab once all data is loaded
                 const hash = window.location.hash || '#dashboard';
                 switchTab(hash);
 
             } catch (error) {
                 console.error("Failed to load app data:", error);
-                // Display a global error message in the content area
                 contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
             }
         }
         
         function initializeOnLoad() {
             const token = localStorage.getItem('jwt_token');
-            if (token) {
+            // More robust check for token existence
+            if (token && token !== 'undefined' && token !== 'null') {
                 loadAppData();
             } else {
                 authOverlay.classList.remove('hidden');
@@ -621,4 +388,4 @@
     });
     </script>
 </body>
-</ht
+</html>
