@@ -160,7 +160,7 @@
         const logoutBtn = document.getElementById('logout-btn');
         const contentArea = document.getElementById('content-area');
 
-        // --- AUTHENTICATION ---
+        // --- AUTHENTICATION (CORRIGÉE) ---
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('jwt_token');
             const headers = { 'Content-Type': 'application/json', ...options.headers };
@@ -168,10 +168,21 @@
             
             const response = await fetch(`${API_BASE_URL}${url}`, { ...options, headers });
 
-            if (response.status === 401) { logout(); throw new Error('Session expirée'); }
+            if (response.status === 401) {
+                logout();
+                throw new Error('Session expirée. Veuillez vous reconnecter.');
+            }
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({error: 'Erreur inconnue'}));
-                throw new Error(errorData.error || 'Une erreur est survenue');
+                let errorMsg = `Erreur du serveur (code: ${response.status})`;
+                try {
+                    const errorData = await response.json();
+                    // Use a more specific error message from the API if available
+                    errorMsg = errorData.error || errorData.message || errorMsg;
+                } catch (e) {
+                    // The response body was not JSON. The default message is fine.
+                    console.error("Could not parse error response as JSON.", e);
+                }
+                throw new Error(errorMsg);
             }
             if (response.headers.get('Content-Length') === '0' || response.status === 204) return null;
             return response.json();
@@ -276,14 +287,19 @@
             const ctx = document.getElementById('reviewsTrendChart').getContext('2d');
             new Chart(ctx, { type: 'line', data: { labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil'], datasets: [{ label: 'Avis reçus', data: [65, 59, 80, 81, 56, 55, 128], borderColor: 'var(--brand-color)', backgroundColor: 'var(--brand-color-light)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } } });
         }
-
+        
+        // --- RENDER PAGE SETTINGS (CORRIGÉE) ---
         async function renderPageSettings() {
             const section = document.getElementById('page-settings');
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
             try {
+                // On suppose que le backend renvoie maintenant un champ 'slug'.
                 const settings = await fetchWithAuth('/api/restaurant');
                 const availableLangs = { 'fr': 'Français', 'en': 'English', 'es': 'Español', 'it': 'Italiano' };
                 
+                // Codage défensif : s'assurer que enabledLanguages est un tableau
+                const enabledLanguages = Array.isArray(settings.enabledLanguages) ? settings.enabledLanguages : [];
+
                 section.innerHTML = `
                     <h1 class="text-4xl font-bold font-serif mb-8">Gestion de la Page de Collecte d'Avis</h1>
                     <form id="page-settings-form">
@@ -326,7 +342,7 @@
                                     <div id="languages-container" class="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                         ${Object.entries(availableLangs).map(([code, name]) => `
                                             <label class="flex items-center space-x-3 cursor-pointer">
-                                                <input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${settings.enabledLanguages.includes(code) ? 'checked' : ''}>
+                                                <input type="checkbox" name="languages" value="${code}" class="h-5 w-5 rounded border-gray-300 text-brand-color focus:ring-brand-color" ${enabledLanguages.includes(code) ? 'checked' : ''}>
                                                 <span class="text-gray-700">${name}</span>
                                             </label>
                                         `).join('')}
@@ -355,45 +371,55 @@
                     </form>
                 `;
                 
-                // --- LOGIC FOR THE NEWLY RENDERED ELEMENTS ---
+                // --- LOGIQUE POUR LES ÉLÉMENTS NOUVELLEMENT RENDUS ---
 
-                // QR Code Generation
-                // Note: The slug should ideally come from the backend. Here we create a placeholder.
-                const restaurantNameForSlug = document.getElementById('register-resto-name').value || 'mon-restaurant';
-                const slug = settings.slug || restaurantNameForSlug.toLowerCase().replace(/\s+/g, '-');
-                const reviewPageUrl = `https://reviewgenius.io/r/${slug}`; // Example URL structure
-                
-                document.getElementById('review-page-link').value = reviewPageUrl;
-                const qrcodeContainer = document.getElementById('qrcode-container');
-                qrcodeContainer.innerHTML = ''; // Clear previous QR code
-                new QRCode(qrcodeContainer, {
-                    text: reviewPageUrl,
-                    width: 200,
-                    height: 200,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
+                // Génération du QR Code
+                const slug = settings.slug;
+                if (!slug) {
+                    // Si le slug est manquant, on ne peut pas générer le QR code. On affiche une erreur.
+                    document.getElementById('qrcode-container').parentElement.innerHTML = '<p class="text-red-500 text-center">Le slug du restaurant est manquant. Impossible de générer le QR Code.</p>';
+                    document.getElementById('download-qr-btn').classList.add('hidden');
+                    document.getElementById('review-page-link').value = 'Slug manquant';
+                } else {
+                    const reviewPageUrl = `${window.location.origin}/r/${slug}`; // Utilise une URL relative pour la robustesse
+                    
+                    document.getElementById('review-page-link').value = reviewPageUrl;
+                    const qrcodeContainer = document.getElementById('qrcode-container');
+                    qrcodeContainer.innerHTML = ''; // Vider l'ancien QR code
+                    new QRCode(qrcodeContainer, {
+                        text: reviewPageUrl,
+                        width: 200,
+                        height: 200,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.H
+                    });
 
-                // Download QR Code
-                document.getElementById('download-qr-btn').addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const canvas = qrcodeContainer.querySelector('canvas');
-                    const link = document.createElement('a');
-                    link.download = `qrcode-${slug}.png`;
-                    link.href = canvas.toDataURL('image/png');
-                    link.click();
-                });
+                    // Télécharger le QR Code
+                    document.getElementById('download-qr-btn').addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const canvas = qrcodeContainer.querySelector('canvas');
+                        if (canvas) {
+                            const link = document.createElement('a');
+                            link.download = `qrcode-${slug}.png`;
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                        }
+                    });
+                }
 
-                // Copy link to clipboard
+                // Copier le lien dans le presse-papiers
                 const reviewLinkInput = document.getElementById('review-page-link');
                 reviewLinkInput.addEventListener('click', () => {
-                    reviewLinkInput.select();
-                    document.execCommand('copy');
-                    alert('Lien copié dans le presse-papiers !');
+                    if(settings.slug) {
+                        reviewLinkInput.select();
+                        document.execCommand('copy');
+                        const originalTitle = reviewLinkInput.title;
+                        alert('Lien copié !');
+                    }
                 });
 
-                // Logo preview
+                // Aperçu du logo
                 document.getElementById('logo-url').addEventListener('blur', (e) => {
                     const preview = document.getElementById('logo-preview');
                     if (e.target.value) {
@@ -401,11 +427,11 @@
                     }
                 });
 
-                // Attach form submit handler
+                // Attacher le gestionnaire de soumission du formulaire
                 document.getElementById('page-settings-form').addEventListener('submit', handleSaveSettings);
 
             } catch (error) {
-                section.innerHTML = `<div class="text-center p-10 text-red-500">Erreur lors du chargement des paramètres: ${error.message}</div>`;
+                section.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Erreur lors du chargement des paramètres:</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
             }
         }
 
