@@ -236,7 +236,6 @@
                 });
                 if (data && data.access_token) {
                     localStorage.setItem('jwt_token', data.access_token);
-                    // Appel de la fonction de chargement après la connexion réussie
                     await loadAppData();
                 } else {
                     throw new Error('Réponse de connexion invalide du serveur.');
@@ -297,8 +296,9 @@
         });
 
         // --- RENDER FUNCTIONS ---
-        function renderDashboard() {
+        async function renderDashboard() {
             const section = document.getElementById('dashboard');
+            if (!section) return; // Sécurité pour éviter l'erreur
             section.innerHTML = `
                 <h1 class="text-4xl font-bold font-serif mb-6">Tableau de bord</h1>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -318,6 +318,7 @@
         
         async function renderPageSettings() {
             const section = document.getElementById('page-settings');
+            if (!section) return;
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
             try {
                 const settings = await fetchWithAuth('/api/restaurant');
@@ -463,6 +464,7 @@
 
         async function renderTeamManagement() {
             const section = document.getElementById('team-management');
+            if (!section) return;
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
             try {
                 const servers = await fetchWithAuth('/api/servers');
@@ -493,6 +495,7 @@
 
         async function renderMenuManagement() {
              const section = document.getElementById('menu-management');
+             if (!section) return;
              section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
              try {
                 const menu = await fetchWithAuth('/api/menu');
@@ -580,16 +583,16 @@
 
         // --- APP INITIALIZATION (RESTRUCTURED) ---
         
-        // Nouvelle fonction pour charger toutes les données de l'application
         async function loadAppData() {
             authOverlay.classList.add('hidden');
             mainApp.classList.remove('hidden');
 
-            // Afficher un état de chargement global
-            contentArea.innerHTML = `<div class="text-center p-10">Chargement de l'application...</div>`;
-
+            // On ne vide plus le contentArea ici.
+            // Chaque fonction render mettra son propre message de chargement.
+            
             try {
-                // Charger toutes les données en parallèle
+                // On charge les données pour tous les onglets.
+                // Promise.all est bon pour le parallélisme.
                 await Promise.all([
                     renderDashboard(),
                     renderPageSettings(),
@@ -607,7 +610,6 @@
             }
         }
         
-        // Fonction d'initialisation au chargement de la page
         function initializeOnLoad() {
             const token = localStorage.getItem('jwt_token');
             if (token && token !== 'undefined' && token !== 'null') {
