@@ -277,7 +277,6 @@
             const section = document.getElementById('menu-management');
             if (!section) return;
             section.innerHTML = `<div class="text-center p-10">Chargement...</div>`;
-            // --- FIX: Call the renamed API endpoint ---
             const menu = await fetchWithAuth('/api/menu-items');
             section.innerHTML = `<div class="flex justify-between items-center mb-6"><h1 class="text-4xl font-bold font-serif">Gestion du menu</h1><button id="add-dish-btn" class="bg-brand-color text-white px-5 py-2 rounded-full font-semibold hover:bg-brand-color-dark">Ajouter un plat</button></div><div id="menu-list" class="card">${Object.keys(menu).length === 0 ? '<p class="text-center text-gray-500">Aucun plat ajouté.</p>' : Object.entries(menu).map(([category, dishes]) => `<div class="mb-6 last:mb-0"><h3 class="text-xl font-bold font-serif border-b pb-2 mb-3">${category}</h3><ul class="space-y-2">${dishes.map(d => `<li class="flex justify-between items-center p-2 hover:bg-gray-50 rounded-md"><span>${d.name}</span><button class="delete-dish-btn text-red-500 hover:text-red-700 font-medium" data-id="${d.id}">Supprimer</button></li>`).join('')}</ul></div>`).join('')}</div>`;
             document.getElementById('add-dish-btn').addEventListener('click', handleAddDish);
@@ -333,17 +332,30 @@
             }
         }
         
-        function initializeOnLoad() {
+        // --- CORRECTION: Logique d'initialisation améliorée ---
+        async function initializeApp() {
             const token = localStorage.getItem('jwt_token');
             if (token && token !== 'undefined' && token !== 'null') {
-                loadAppData();
+                try {
+                    // Vérification proactive du token avec une requête légère
+                    await fetchWithAuth('/api/restaurant');
+                    // Si la requête réussit, le token est valide
+                    await loadAppData();
+                } catch (error) {
+                    // fetchWithAuth a déjà appelé logout() en cas d'erreur 401/422
+                    // L'utilisateur verra l'écran de connexion
+                    console.warn("La vérification initiale du token a échoué, affichage de l'écran de connexion.", error.message);
+                    mainApp.classList.add('hidden');
+                    authOverlay.classList.remove('hidden');
+                }
             } else {
+                // Pas de token, on affiche l'écran de connexion
                 authOverlay.classList.remove('hidden');
                 mainApp.classList.add('hidden');
             }
         }
         
-        initializeOnLoad();
+        initializeApp();
     });
     </script>
 </body>
