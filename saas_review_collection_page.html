@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Donnez votre avis - Le Bistrot Gourmand</title>
+    <title>Donnez votre avis</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,6 +40,11 @@
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
             padding: 2rem;
             margin-top: 2rem;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .main-container.loaded {
+            opacity: 1;
         }
         .step {
             display: none;
@@ -136,93 +141,88 @@
             border-radius: 50%;
             object-fit: cover;
             margin-bottom: 0.75rem;
+            background-color: #f0f0f0; /* Placeholder background */
         }
         .selection-item span {
             font-weight: 500;
             font-size: 0.9rem;
         }
+        #loader { text-align: center; padding: 3rem; }
     </style>
 </head>
 <body>
 
     <div id="main-container" class="main-container">
+        <div id="loader">
+            <p>Chargement des informations du restaurant...</p>
+        </div>
+        <div id="app-content" class="hidden">
+            <!-- Step 0: Language Selection -->
+            <div id="step-lang" class="step">
+                <h1 class="text-2xl font-bold font-serif text-center mb-6">Choose your language</h1>
+                <div id="lang-selector" class="flex flex-wrap justify-center gap-3">
+                    <!-- Language buttons will be injected here -->
+                </div>
+            </div>
 
-        <!-- Step 0: Language Selection -->
-        <div id="step-lang" class="step">
-            <h1 class="text-2xl font-bold font-serif text-center mb-6">Choose your language</h1>
-            <div id="lang-selector" class="flex flex-wrap justify-center gap-3">
-                <!-- Language buttons will be injected here -->
+            <!-- Step 1: Server Selection -->
+            <div id="step-server" class="step">
+                <h1 id="server-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+                <p id="server-subtitle" class="text-center text-gray-500 mb-8"></p>
+                <div id="server-grid" class="selection-grid">
+                    <!-- Server items will be injected here -->
+                </div>
+            </div>
+
+            <!-- Step 2: Rating -->
+            <div id="step-rating" class="step">
+                <h1 id="rating-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+                <p id="rating-subtitle" class="text-center text-gray-500 mb-6"></p>
+                <div id="star-rating" class="star-rating">
+                    <!-- Stars will be injected here -->
+                </div>
+                <p id="rating-feedback" class="text-center font-semibold text-xl" style="min-height: 28px;"></p>
+            </div>
+            
+            <!-- Step 3: Positive Feedback -->
+            <div id="step-positive-feedback" class="step">
+                <h1 id="positive-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+                <p id="positive-subtitle" class="text-center text-gray-500 mb-8"></p>
+                <div id="positive-buttons" class="space-y-4">
+                    <!-- Positive feedback buttons will be injected here -->
+                </div>
+            </div>
+
+            <!-- Step 4: Negative Feedback -->
+            <div id="step-negative-feedback" class="step">
+                <h1 id="negative-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
+                <p id="negative-subtitle" class="text-center text-gray-500 mb-8"></p>
+                <form id="internal-feedback-form">
+                    <textarea id="feedback-textarea" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)]" required></textarea>
+                    <button id="submit-feedback-btn" type="submit" class="btn mt-4"></button>
+                </form>
+            </div>
+            
+            <!-- Step 5: Thank You -->
+            <div id="step-thank-you" class="step text-center">
+                 <svg class="w-16 h-16 mx-auto text-green-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                <h1 id="thank-you-title" class="text-2xl font-bold font-serif mb-2"></h1>
+                <p id="thank-you-subtitle" class="text-gray-500"></p>
             </div>
         </div>
-
-        <!-- Step 1: Server Selection -->
-        <div id="step-server" class="step">
-            <h1 id="server-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
-            <p id="server-subtitle" class="text-center text-gray-500 mb-8"></p>
-            <div id="server-grid" class="selection-grid">
-                <!-- Server items will be injected here -->
-            </div>
-        </div>
-
-        <!-- Step 2: Rating -->
-        <div id="step-rating" class="step">
-            <h1 id="rating-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
-            <p id="rating-subtitle" class="text-center text-gray-500 mb-6"></p>
-            <div id="star-rating" class="star-rating">
-                <!-- Stars will be injected here -->
-            </div>
-            <p id="rating-feedback" class="text-center font-semibold text-xl" style="min-height: 28px;"></p>
-        </div>
-        
-        <!-- Step 3: Positive Feedback -->
-        <div id="step-positive-feedback" class="step">
-            <h1 id="positive-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
-            <p id="positive-subtitle" class="text-center text-gray-500 mb-8"></p>
-            <div id="positive-buttons" class="space-y-4">
-                <!-- Positive feedback buttons will be injected here -->
-            </div>
-        </div>
-
-        <!-- Step 4: Negative Feedback -->
-        <div id="step-negative-feedback" class="step">
-            <h1 id="negative-title" class="text-2xl font-bold font-serif text-center mb-2"></h1>
-            <p id="negative-subtitle" class="text-center text-gray-500 mb-8"></p>
-            <form id="internal-feedback-form">
-                <textarea id="feedback-textarea" rows="5" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[var(--brand-color)] focus:border-[var(--brand-color)]" required></textarea>
-                <button id="submit-feedback-btn" type="submit" class="btn mt-4"></button>
-            </form>
-        </div>
-        
-        <!-- Step 5: Thank You -->
-        <div id="step-thank-you" class="step text-center">
-             <svg class="w-16 h-16 mx-auto text-green-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <h1 id="thank-you-title" class="text-2xl font-bold font-serif mb-2"></h1>
-            <p id="thank-you-subtitle" class="text-gray-500"></p>
-        </div>
-
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+        const API_BASE_URL = 'https://repup-test.onrender.com';
 
-        // --- MOCK RESTAURANT DATA ---
-        // In a real app, this would be fetched from your backend based on the URL
-        const restaurantData = {
-            name: "Le Bistrot Gourmand",
-            logoUrl: "https://placehold.co/200x50/BF5B3F/FFFFFF?text=Le+Bistrot+Gourmand",
-            primaryColor: "#BF5B3F",
-            links: {
-                google: "https://search.google.com/local/writereview?placeid=ChIJIdvGkX5v5kcRQ1FTWUnyJxo",
-                tripadvisor: "https://www.tripadvisor.fr/UserReview-g187147-d1234567-Le_Bistrot_Gourmand-Paris_Ile_de_France.html"
-            },
-            servers: [
-                { id: 1, name: 'Clara', avatar: 'https://placehold.co/128x128/f8b4b4/FFFFFF?text=C' },
-                { id: 2, name: 'Julien', avatar: 'https://placehold.co/128x128/b4d8f8/FFFFFF?text=J' },
-                { id: 3, name: 'Amina', avatar: 'https://placehold.co/128x128/f8f8b4/FFFFFF?text=A' },
-                { id: 4, name: 'Lucas', avatar: 'https://placehold.co/128x128/b4f8b4/FFFFFF?text=L' },
-            ],
-            languages: ['fr', 'en', 'es']
-        };
+        // --- DOM Elements ---
+        const mainContainer = document.getElementById('main-container');
+        const loader = document.getElementById('loader');
+        const appContent = document.getElementById('app-content');
+        const steps = document.querySelectorAll('.step');
+
+        let restaurantData = {};
 
         const translations = {
             fr: {
@@ -289,18 +289,35 @@
             rating: 0,
         };
 
-        // --- DOM Elements ---
-        const steps = document.querySelectorAll('.step');
-        const mainContainer = document.getElementById('main-container');
+        // --- DATA FETCHING ---
+        async function fetchRestaurantData() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const slug = urlParams.get('slug');
+                if (!slug) {
+                    throw new Error("Slug du restaurant manquant dans l'URL.");
+                }
+                const response = await fetch(`${API_BASE_URL}/api/public/restaurant/${slug}`);
+                if (!response.ok) {
+                    throw new Error(`Erreur lors de la récupération des données (code: ${response.status})`);
+                }
+                restaurantData = await response.json();
+                // Set default language
+                currentState.lang = restaurantData.languages && restaurantData.languages.includes('fr') ? 'fr' : (restaurantData.languages[0] || 'en');
+                return true;
+            } catch (error) {
+                loader.innerHTML = `<p class="text-red-500">Erreur: ${error.message}</p><p class="text-sm text-gray-500 mt-2">Impossible de charger la page d'avis. Veuillez vérifier le lien.</p>`;
+                return false;
+            }
+        }
 
-        // --- DYNAMIC STYLING ---
+        // --- DYNAMIC STYLING & CONTENT ---
         function applyBranding() {
             const root = document.documentElement;
-            const color = restaurantData.primaryColor;
+            const color = restaurantData.primaryColor || '#BF5B3F';
             root.style.setProperty('--brand-color', color);
             const [r, g, b] = color.match(/\w\w/g).map((c) => parseInt(c, 16));
             root.style.setProperty('--brand-color-light', `rgba(${r}, ${g}, ${b}, 0.1)`);
-            // Simple darken effect for hover
             const darkColor = `rgb(${Math.max(0, r-20)}, ${Math.max(0, g-20)}, ${Math.max(0, b-20)})`;
             root.style.setProperty('--brand-color-dark', darkColor);
             
@@ -308,11 +325,11 @@
             
             const logoContainer = document.createElement('div');
             logoContainer.className = 'text-center mb-8';
-            logoContainer.innerHTML = `<img src="${restaurantData.logoUrl}" alt="Logo de ${restaurantData.name}" class="mx-auto h-12">`;
-            mainContainer.prepend(logoContainer);
+            const logoUrl = restaurantData.logoUrl ? `${API_BASE_URL}${restaurantData.logoUrl}` : `https://placehold.co/200x50/${color.substring(1)}/FFFFFF?text=${encodeURIComponent(restaurantData.name)}`;
+            logoContainer.innerHTML = `<img src="${logoUrl}" alt="Logo de ${restaurantData.name}" class="mx-auto h-12 object-contain">`;
+            appContent.prepend(logoContainer);
         }
 
-        // --- TRANSLATION & CONTENT RENDERING ---
         function getTranslation(key, ...args) {
             const langPack = translations[currentState.lang] || translations.fr;
             const translation = langPack[key] || key;
@@ -323,7 +340,7 @@
             // Language Step
             const langSelector = document.getElementById('lang-selector');
             langSelector.innerHTML = restaurantData.languages.map(lang => 
-                `<button class="lang-btn ${currentState.lang === lang ? 'active' : ''}" data-lang="${lang}">${lang.toUpperCase()}</button>`
+                `<button class="lang-btn ${currentState.lang === lang ? 'active' : ''}" data-lang="${lang}">${(translations[lang] || {}).lang_name || lang.toUpperCase()}</button>`
             ).join('');
 
             // Server Step
@@ -332,7 +349,7 @@
             const serverGrid = document.getElementById('server-grid');
             serverGrid.innerHTML = restaurantData.servers.map(server => `
                 <div class="selection-item" data-server-id="${server.id}" data-server-name="${server.name}">
-                    <img src="${server.avatar}" alt="Avatar de ${server.name}">
+                    <img src="${server.avatar || 'https://placehold.co/128x128/eeeeee/cccccc?text=?'}" alt="Avatar de ${server.name}">
                     <span>${server.name}</span>
                 </div>
             `).join('');
@@ -346,10 +363,10 @@
             // Positive Feedback Step
             const positiveButtons = document.getElementById('positive-buttons');
             positiveButtons.innerHTML = '';
-            if (restaurantData.links.google) {
+            if (restaurantData.links && restaurantData.links.google) {
                 positiveButtons.innerHTML += `<a href="${restaurantData.links.google}" target="_blank" class="btn">${getTranslation('publish_on', 'Google')}</a>`;
             }
-            if (restaurantData.links.tripadvisor) {
+            if (restaurantData.links && restaurantData.links.tripadvisor) {
                 positiveButtons.innerHTML += `<a href="${restaurantData.links.tripadvisor}" target="_blank" class="btn secondary">${getTranslation('publish_on', 'TripAdvisor')}</a>`;
             }
             positiveButtons.innerHTML += `<a href="#" id="close-positive-btn" class="block text-center text-sm text-gray-500 mt-4 hover:underline">Non merci</a>`;
@@ -390,99 +407,90 @@
         }
 
         // --- EVENT LISTENERS ---
-        
-        // Language Selection
-        document.getElementById('lang-selector').addEventListener('click', (e) => {
-            if (e.target.matches('.lang-btn')) {
-                currentState.lang = e.target.dataset.lang;
-                renderStepContent(); // Re-render content with new language
-                goToStep('server');
-            }
-        });
-
-        // Server Selection
-        document.getElementById('server-grid').addEventListener('click', (e) => {
-            const serverItem = e.target.closest('.selection-item');
-            if (serverItem) {
-                currentState.selectedServer = {
-                    id: serverItem.dataset.serverId,
-                    name: serverItem.dataset.serverName
-                };
-                goToStep('rating');
-            }
-        });
-
-        // Star Rating
-        const starRating = document.getElementById('star-rating');
-        const stars = starRating.querySelectorAll('svg');
-        const ratingFeedback = document.getElementById('rating-feedback');
-        
-        starRating.addEventListener('mouseover', e => {
-            if (e.target.matches('svg')) {
-                const ratingValue = parseInt(e.target.dataset.value);
-                stars.forEach((star, index) => {
-                    star.classList.toggle('hovered', index < ratingValue);
-                });
-            }
-        });
-
-        starRating.addEventListener('mouseout', () => {
-            stars.forEach(star => star.classList.remove('hovered'));
-        });
-
-        starRating.addEventListener('click', e => {
-            if (e.target.matches('svg')) {
-                currentState.rating = parseInt(e.target.dataset.value);
-                stars.forEach((star, index) => {
-                    star.classList.toggle('selected', index < currentState.rating);
-                    star.style.color = index < currentState.rating ? '#FFC107' : '#E0E0E0';
-                });
-                ratingFeedback.textContent = getTranslation('rating_feedback')[currentState.rating - 1];
-                
-                // Smart redirection logic
-                setTimeout(() => {
-                    if (currentState.rating >= 4) {
-                        goToStep('positive-feedback');
-                    } else {
-                        goToStep('negative-feedback');
-                    }
-                }, 800);
-            }
-        });
-        
-        // Positive Feedback close
-        document.getElementById('positive-buttons').addEventListener('click', e => {
-            if (e.target.id === 'close-positive-btn') {
-                e.preventDefault();
-                document.getElementById('thank-you-title').innerText = getTranslation('final_thank_you_title');
-                document.getElementById('thank-you-subtitle').innerText = getTranslation('final_thank_you_subtitle');
-                goToStep('thank-you');
-            }
-        });
-
-        // Negative Feedback Form
-        document.getElementById('internal-feedback-form').addEventListener('submit', e => {
-            e.preventDefault();
-            const feedbackText = document.getElementById('feedback-textarea').value;
-            console.log("Internal feedback submitted:", {
-                server: currentState.selectedServer.name,
-                rating: currentState.rating,
-                feedback: feedbackText
+        function setupEventListeners() {
+            document.getElementById('lang-selector').addEventListener('click', (e) => {
+                if (e.target.matches('.lang-btn')) {
+                    currentState.lang = e.target.dataset.lang;
+                    renderStepContent();
+                    goToStep('server');
+                }
             });
-            // Here you would POST this data to your backend
-            goToStep('thank-you');
-        });
 
+            document.getElementById('server-grid').addEventListener('click', (e) => {
+                const serverItem = e.target.closest('.selection-item');
+                if (serverItem) {
+                    currentState.selectedServer = {
+                        id: serverItem.dataset.serverId,
+                        name: serverItem.dataset.serverName
+                    };
+                    goToStep('rating');
+                }
+            });
+
+            const starRating = document.getElementById('star-rating');
+            const stars = starRating.querySelectorAll('svg');
+            const ratingFeedback = document.getElementById('rating-feedback');
+            
+            starRating.addEventListener('mouseover', e => {
+                if (e.target.closest('svg')) {
+                    const ratingValue = parseInt(e.target.closest('svg').dataset.value);
+                    stars.forEach((star, index) => star.classList.toggle('hovered', index < ratingValue));
+                }
+            });
+
+            starRating.addEventListener('mouseout', () => {
+                stars.forEach(star => star.classList.remove('hovered'));
+            });
+
+            starRating.addEventListener('click', e => {
+                const targetStar = e.target.closest('svg');
+                if (targetStar) {
+                    currentState.rating = parseInt(targetStar.dataset.value);
+                    stars.forEach((star, index) => {
+                        star.classList.toggle('selected', index < currentState.rating);
+                        star.style.color = index < currentState.rating ? '#FFC107' : '#E0E0E0';
+                    });
+                    ratingFeedback.textContent = getTranslation('rating_feedback')[currentState.rating - 1];
+                    
+                    setTimeout(() => {
+                        if (currentState.rating >= 4) goToStep('positive-feedback');
+                        else goToStep('negative-feedback');
+                    }, 800);
+                }
+            });
+            
+            document.getElementById('positive-buttons').addEventListener('click', e => {
+                if (e.target.id === 'close-positive-btn') {
+                    e.preventDefault();
+                    document.getElementById('thank-you-title').innerText = getTranslation('final_thank_you_title');
+                    document.getElementById('thank-you-subtitle').innerText = getTranslation('final_thank_you_subtitle');
+                    goToStep('thank-you');
+                }
+            });
+
+            document.getElementById('internal-feedback-form').addEventListener('submit', e => {
+                e.preventDefault();
+                goToStep('thank-you');
+            });
+        }
 
         // --- INITIALIZATION ---
-        function init() {
-            applyBranding();
-            renderStepContent();
-            // Start at language selection if more than one language, else start at server selection
-            if (restaurantData.languages.length > 1) {
-                 goToStep('lang');
-            } else {
-                 goToStep('server');
+        async function init() {
+            const success = await fetchRestaurantData();
+            if (success) {
+                loader.classList.add('hidden');
+                appContent.classList.remove('hidden');
+                mainContainer.classList.add('loaded');
+                
+                applyBranding();
+                renderStepContent();
+                setupEventListeners();
+
+                if (restaurantData.languages && restaurantData.languages.length > 1) {
+                     goToStep('lang');
+                } else {
+                     goToStep('server');
+                }
             }
         }
 
