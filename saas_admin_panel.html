@@ -328,28 +328,26 @@
                 switchTab(hash);
             } catch (error) {
                 console.error("Failed to load app data:", error);
-                contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
+                // FINAL FIX: Only show the critical error message if it's NOT an auth error,
+                // because auth errors are already handled by redirecting to the login page.
+                if (!error.message.includes("Session expirée")) {
+                    contentArea.innerHTML = `<div class="card text-center p-10"><p class="text-red-500 font-semibold">Une erreur critique est survenue :</p><p class="text-gray-600 mt-2">${error.message}</p></div>`;
+                }
             }
         }
         
-        // --- CORRECTION: Logique d'initialisation améliorée ---
         async function initializeApp() {
             const token = localStorage.getItem('jwt_token');
             if (token && token !== 'undefined' && token !== 'null') {
                 try {
-                    // Vérification proactive du token avec une requête légère
                     await fetchWithAuth('/api/restaurant');
-                    // Si la requête réussit, le token est valide
                     await loadAppData();
                 } catch (error) {
-                    // fetchWithAuth a déjà appelé logout() en cas d'erreur 401/422
-                    // L'utilisateur verra l'écran de connexion
                     console.warn("La vérification initiale du token a échoué, affichage de l'écran de connexion.", error.message);
                     mainApp.classList.add('hidden');
                     authOverlay.classList.remove('hidden');
                 }
             } else {
-                // Pas de token, on affiche l'écran de connexion
                 authOverlay.classList.remove('hidden');
                 mainApp.classList.add('hidden');
             }
@@ -359,4 +357,4 @@
     });
     </script>
 </body>
-</html>
+</ht
