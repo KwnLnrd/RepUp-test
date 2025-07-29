@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func, desc, Text # Import Text type
+from sqlalchemy import func, desc, Text
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -15,8 +15,9 @@ from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_requir
 load_dotenv()
 app = Flask(__name__)
 
-# --- CONFIGURATION DU DOSSIER DE TÉLÉVERSEMENT ---
-UPLOAD_FOLDER = 'uploads'
+# --- CONFIGURATION DU DOSSIER DE TÉLÉVERSEMENT (POUR DISQUE PERSISTANT) ---
+# Ce chemin est le standard pour les disques persistants sur Render.
+UPLOAD_FOLDER = '/var/data/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -119,7 +120,6 @@ def uploaded_file(filename):
 # --- ROUTES API ---
 @app.route('/api/register', methods=['POST'])
 def register():
-    # ... (code inchangé)
     data = request.get_json()
     email, password, restaurant_name = data.get('email'), data.get('password'), data.get('restaurant_name')
     if not all([email, password, restaurant_name]): return jsonify({"error": "Données manquantes"}), 400
@@ -136,7 +136,6 @@ def register():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    # ... (code inchangé)
     data = request.get_json()
     email, password = data.get('email'), data.get('password')
     user = User.query.filter_by(email=email).first()
@@ -151,7 +150,6 @@ def login():
 @app.route('/api/logo-upload', methods=['POST'])
 @jwt_required()
 def upload_logo():
-    # ... (code inchangé)
     restaurant_id = get_restaurant_id_from_token()
     restaurant = db.session.get(Restaurant, restaurant_id)
     if not restaurant: return jsonify({"error": "Restaurant non trouvé"}), 404
@@ -171,7 +169,6 @@ def upload_logo():
 
 @app.route('/api/public/restaurant/<string:slug>', methods=['GET'])
 def get_restaurant_public_data(slug):
-    # ... (code inchangé)
     restaurant = Restaurant.query.filter_by(slug=slug).first_or_404()
     servers = Server.query.filter_by(restaurant_id=restaurant.id).all()
     return jsonify({
@@ -184,7 +181,6 @@ def get_restaurant_public_data(slug):
 @app.route('/api/restaurant', methods=['GET', 'PUT'])
 @jwt_required()
 def manage_restaurant_settings():
-    # ... (code inchangé)
     restaurant_id = get_restaurant_id_from_token()
     restaurant = db.session.get(Restaurant, restaurant_id)
     if not restaurant: return jsonify({"error": "Restaurant non trouvé"}), 404
@@ -194,7 +190,7 @@ def manage_restaurant_settings():
             "primaryColor": restaurant.primary_color, "googleLink": restaurant.google_link,
             "tripadvisorLink": restaurant.tripadvisor_link, "enabledLanguages": restaurant.enabled_languages
         })
-    if request.method == 'PUT':
+    elif request.method == 'PUT':
         data = request.get_json()
         restaurant.primary_color = data.get('primaryColor', restaurant.primary_color)
         restaurant.google_link = data.get('googleLink', restaurant.google_link)
@@ -202,26 +198,26 @@ def manage_restaurant_settings():
         restaurant.enabled_languages = data.get('enabledLanguages', restaurant.enabled_languages)
         db.session.commit()
         return jsonify({"message": "Paramètres mis à jour"})
+    return jsonify({"error": "Méthode non autorisée"}), 405
 
 @app.route('/api/servers', methods=['GET', 'POST'])
 @jwt_required()
 def manage_servers():
-    # ... (code inchangé)
     restaurant_id = get_restaurant_id_from_token()
     if request.method == 'GET':
         servers = Server.query.filter_by(restaurant_id=restaurant_id).order_by(Server.name).all()
         return jsonify([{"id": s.id, "name": s.name, "reviews": 0} for s in servers])
-    if request.method == 'POST':
+    elif request.method == 'POST':
         data = request.get_json()
         new_server = Server(name=data['name'], restaurant_id=restaurant_id)
         db.session.add(new_server)
         db.session.commit()
         return jsonify({"id": new_server.id, "name": new_server.name}), 201
+    return jsonify({"error": "Méthode non autorisée"}), 405
 
 @app.route('/api/servers/<int:server_id>', methods=['PUT', 'DELETE'])
 @jwt_required()
 def handle_server(server_id):
-    # ... (code inchangé)
     restaurant_id = get_restaurant_id_from_token()
     server = Server.query.filter_by(id=server_id, restaurant_id=restaurant_id).first_or_404()
     if request.method == 'PUT':
@@ -229,12 +225,12 @@ def handle_server(server_id):
         server.name = data.get('name', server.name)
         db.session.commit()
         return jsonify({"id": server.id, "name": server.name})
-    if request.method == 'DELETE':
+    elif request.method == 'DELETE':
         db.session.delete(server)
         db.session.commit()
         return jsonify({"message": "Serveur supprimé"})
+    return jsonify({"error": "Méthode non autorisée"}), 405
 
-# --- ROUTE RENOMMÉE ---
 @app.route('/api/menu-items', methods=['GET'])
 @jwt_required()
 def get_menu_items():
@@ -249,7 +245,6 @@ def get_menu_items():
 @app.route('/api/dishes', methods=['POST'])
 @jwt_required()
 def add_dish():
-    # ... (code inchangé)
     restaurant_id = get_restaurant_id_from_token()
     data = request.get_json()
     new_dish = Dish(name=data['name'], category=data['category'], restaurant_id=restaurant_id)
@@ -260,7 +255,6 @@ def add_dish():
 @app.route('/api/dishes/<int:dish_id>', methods=['PUT', 'DELETE'])
 @jwt_required()
 def handle_dish(dish_id):
-    # ... (code inchangé)
     restaurant_id = get_restaurant_id_from_token()
     dish = Dish.query.filter_by(id=dish_id, restaurant_id=restaurant_id).first_or_404()
     if request.method == 'PUT':
@@ -269,10 +263,11 @@ def handle_dish(dish_id):
         dish.category = data.get('category', dish.category)
         db.session.commit()
         return jsonify({"id": dish.id, "name": dish.name, "category": dish.category})
-    if request.method == 'DELETE':
+    elif request.method == 'DELETE':
         db.session.delete(dish)
         db.session.commit()
         return jsonify({"message": "Plat supprimé"})
+    return jsonify({"error": "Méthode non autorisée"}), 405
 
 @app.route('/')
 def index():
